@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Herbalife Business Manager</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f5f5; }
+        
+        .login-page { display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 20px; }
+        .login-box { background: white; padding: 40px; border-radius: 12px; box-shadow: 0 10px 40px rgba(0,0,0,0.1); width: 100%; max-width: 400px; }
+        .login-box h1 { font-size: 28px; margin-bottom: 10px; }
+        .login-box p { font-size: 13px; color: #666; margin-bottom: 20px; }
+        .login-box input { width: 100%; padding: 12px; margin-bottom: 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; }
+        .login-box button { width: 100%; padding: 12px; background: #2563eb; color: white; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; }
+        .login-box button:hover { background: #1d4ed8; }
+        .info-box { margin-top: 20px; padding: 15px; background: #f0f9ff; border: 1px solid #bfdbfe; border-radius: 6px; font-size: 12px; color: #1e40af; text-align: center; }
+        
+        .app-page { display: none; }
+        .app-container { max-width: 1200px; margin: 0 auto; }
+        
+        .header { background: white; padding: 20px; border-bottom: 1px solid #e0e0e0; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 100; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+        .header h1 { font-size: 24px; margin: 0 0 5px; font-weight: 600; }
+        .header p { margin: 0; font-size: 12px; color: #666; }
+        .header-right { text-align: right; }
+        .header-email { font-size: 13px; color: #666; margin-bottom: 8px; }
+        
+        .tabs { display: flex; gap: 0; border-bottom: 1px solid #e0e0e0; background: white; overflow-x: auto; position: sticky; top: 75px; z-index: 99; }
+        .tab { padding: 12px 20px; cursor: pointer; border-bottom: 3px solid transparent; font-weight: 500; color: #666; white-space: nowrap; transition: all 0.2s; }
+        .tab:hover { color: #2563eb; }
+        .tab.active { border-bottom-color: #2563eb; color: #2563eb; }
+        
+        .content { padding: 20px; min-height: 400px; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin-bottom: 20px; }
+        .metric { background: white; padding: 20px; border-radius: 8px; text-align: center; border: 1px solid #e0e0e0; }
+        .metric-label { font-size: 12px; color: #666; margin-bottom: 10px; }
+        .metric-value { font-size: 32px; font-weight: 700; color: #2563eb; }
+        
+        .card { background: white; border: 1px solid #e0e0e0; border-radius: 8px; padding: 20px; margin-bottom: 20px; }
+        .card h2 { font-size: 18px; font-weight: 600; margin-bottom: 15px; }
+        
+        .form-group { margin-bottom: 12px; }
+        .form-group label { display: block; font-size: 12px; font-weight: 600; margin-bottom: 6px; }
+        input, select { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; }
+        input:focus, select:focus { outline: none; border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1); }
+        
+        .btn { padding: 10px 20px; background: #2563eb; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; }
+        .btn:hover { background: #1d4ed8; }
+        .btn-danger { background: #dc2626; }
+        .btn-danger:hover { background: #b91c1c; }
+        .btn-small { padding: 6px 12px; font-size: 12px; }
+        
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        th { text-align: left; padding: 12px; border-bottom: 2px solid #e0e0e0; background: #f8f9fa; font-weight: 600; font-size: 12px; }
+        td { padding: 12px; border-bottom: 1px solid #e0e0e0; }
+        tr:hover { background: #f9fafb; }
+        
+        .badge { display: inline-block; padding: 4px 10px; border-radius: 4px; font-size: 11px; font-weight: 600; }
+        .badge-hot { background: #fee2e2; color: #991b1b; }
+        .badge-new { background: #dbeafe; color: #1e40af; }
+        .badge-converted { background: #dcfce7; color: #166534; }
+        
+        .ai-box { background: linear-gradient(135deg, #f0f9ff 0%, #f3e8ff 100%); border: 1px solid #bfdbfe; border-radius: 8px; padding: 20px; margin-bottom: 20px; }
+        .ai-response { background: white; padding: 15px; border-radius: 6px; margin-top: 15px; border-left: 4px solid #2563eb; max-height: 400px; overflow-y: auto; white-space: pre-wrap; line-height: 1.5; font-size: 12px; }
+        
+        .row { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        
+        @media (max-width: 768px) {
+            .row { grid-template-columns: 1fr; }
+            .header { flex-direction: column; align-items: flex-start; gap: 10px; }
+        }
+    </style>
+</head>
+<body>
+    <!-- LOGIN PAGE -->
+    <div id="loginPage" class="login-page">
+        <div class="login-box">
+            <h1>🎯 Herbalife Business Manager</h1>
+            <p>AI-powered lead management with cloud sync</p>
+            <input type="email" id="loginEmail" placeholder="Email address">
+            <input type="password" id="loginPassword" placeholder="Password">
+            <button onclick="app.login()">Sign In / Create Account</button>
+            <div class="info-box">💡 Use any email and password to get started!</div>
+        </div>
+    </div>
+
+    <!-- APP PAGE -->
+    <div id="appPage" class="app-page">
+        <div class="app-container">
+            <div class="header">
+                <div>
+                    <h1>🎯 Herbalife Business Manager</h1>
+                    <p>☁️ Cloud Synced • Data saved automatically</p>
+                </div>
+                <div class="header-right">
+                    <div class="header-email" id="userEmail"></div>
+                    <button class="btn btn-danger" onclick="app.logout()">Logout</button>
+                </div>
+            </div>
+
+            <div class="tabs">
+                <div class="tab active" onclick="app.switchTab('dashboard')">📊 Dashboard</div>
+                <div class="tab" onclick="app.switchTab('leads')">📋 Leads</div>
+                <div class="tab" onclick="app.switchTab('events')">🎟️ Events</div>
+                <div class="tab" onclick="app.switchTab('team')">👥 Team</div>
+                <div class="tab" onclick="app.switchTab('daily')">📅 Daily Log</div>
+            </div>
+
+            <div class="content">
+                <!-- DASHBOARD -->
+                <div id="dashboardTab" class="tab-content active">
+                    <div class="grid">
+                        <div class="metric">
+                            <div class="metric-label">Total Leads</div>
+                            <div class="metric-value" id="totalLeads">0</div>
+                        </div>
+                        <div class="metric">
+                            <div class="metric-label">Hot Leads 🔥</div>
+                            <div class="metric-value" id="hotLeads">0</div>
+                        </div>
+                        <div class="metric">
+                            <div class="metric-label">Customers ✅</div>
+                            <div class="metric-value" id="customers">0</div>
+                        </div>
+                        <div class="metric">
+                            <div class="metric-label">Team Members</div>
+                            <div class="metric-value" id="teamCount">0</div>
+                        </div>
+                        <div class="metric">
+                            <div class="metric-label">Total Contacts</div>
+                            <div class="metric-value" id="totalContacts">0</div>
+                        </div>
+                        <div class="metric">
+                            <div class="metric-label">Events</div>
+                            <div class="metric-value" id="eventsCount">0</div>
+                        </div>
+                    </div>
+
+                    <div class="ai-box">
+                        <h2>🤖 AI Daily Task Generator</h2>
+                        <p style="font-size: 13px; color: #555; margin-bottom: 15px;">Get personalized daily tasks based on your business stats</p>
+                        <button class="btn" id="aiBtn" onclick="app.generateAITasks()">✨ Generate Today's Tasks</button>
+                        <div id="aiResponse"></div>
+                    </div>
+                </div>
+
+                <!-- LEADS -->
+                <div id="leadsTab" class="tab-content">
+                    <div class="card">
+                        <h2>➕ Add New Lead</h2>
+                        <div class="row">
+                            <div class="form-group">
+                                <label>Name *</label>
+                                <input type="text" id="leadName" placeholder="Enter name">
+                            </div>
+                            <div class="form-group">
+                                <label>Phone *</label>
+                                <input type="text" id="leadPhone" placeholder="Enter phone">
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="form-group">
+                                <label>Source</label>
+                                <select id="leadSource">
+                                    <option>WhatsApp</option>
+                                    <option>Instagram</option>
+                                    <option>Facebook</option>
+                                    <option>Referral</option>
+                                    <option>Event</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Status</label>
+                                <select id="leadStatus">
+                                    <option>New</option>
+                                    <option>Hot Lead</option>
+                                    <option>Warm Lead</option>
+                                    <option>Converted</option>
+                                </select>
+                            </div>
+                        </div>
+                        <button class="btn" onclick="app.addLead()">+ Add Lead</button>
+                    </div>
+                    <div class="card">
+                        <h2>Your Leads</h2>
+                        <div id="leadsTable"></div>
+                    </div>
+                </div>
+
+                <!-- EVENTS -->
+                <div id="eventsTab" class="tab-content">
+                    <div class="card">
+                        <h2>🎟️ Add Event Ticket</h2>
+                        <div class="row">
+                            <div class="form-group">
+                                <label>Ticket Number *</label>
+                                <input type="text" id="eventTicket" placeholder="e.g., TKT-001">
+                            </div>
+                            <div class="form-group">
+                                <label>Attendee Name *</label>
+                                <input type="text" id="eventName" placeholder="Enter name">
+                            </div>
+                        </div>
+                        <button class="btn" onclick="app.addEvent()">+ Add Ticket</button>
+                    </div>
+                    <div class="card">
+                        <h2>Event Tickets</h2>
+                        <div id="eventsTable"></div>
+                    </div>
+                </div>
+
+                <!-- TEAM -->
+                <div id="teamTab" class="tab-content">
+                    <div class="card">
+                        <h2>👥 Add Team Member</h2>
+                        <div class="row">
+                            <div class="form-group">
+                                <label>Name *</label>
+                                <input type="text" id="teamName" placeholder="Enter name">
+                            </div>
+                            <div class="form-group">
+                                <label>Phone</label>
+                                <input type="text" id="teamPhone" placeholder="Enter phone">
+                            </div>
+                        </div>
+                        <button class="btn" onclick="app.addTeam()">+ Add Member</button>
+                    </div>
+                    <div class="card">
+                        <h2>Team Members</h2>
+                        <div id="teamTable"></div>
+                    </div>
+                </div>
+
+                <!-- DAILY LOG -->
+                <div id="dailyTab" class="tab-content">
+                    <div class="card">
+                        <h2>📊 Log Daily Activity</h2>
+                        <div class="form-group">
+                            <label>Date *</label>
+                            <input type="date" id="logDate">
+                        </div>
+                        <div class="row">
+                            <div class="form-group">
+                                <label>New Contacts Made *</label>
+                                <input type="number" id="logContacts" placeholder="0">
+                            </div>
+                            <div class="form-group">
+                                <label>Messages Sent</label>
+                                <input type="number" id="logMessages" placeholder="0">
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="form-group">
+                                <label>Positive Responses</label>
+                                <input type="number" id="logResponses" placeholder="0">
+                            </div>
+                            <div class="form-group">
+                                <label>Customers Added</label>
+                                <input type="number" id="logCustomers" placeholder="0">
+                            </div>
+                        </div>
+                        <button class="btn" onclick="app.addLog()">+ Log Activity</button>
+                    </div>
+                    <div class="card">
+                        <h2>Activity Log</h2>
+                        <div id="logsTable"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const app = {
+            user: null,
+            data: { leads: [], events: [], team: [], logs: [] },
+
+            init() {
+                const saved = localStorage.getItem('user');
+                if (saved) {
+                    this.user = JSON.parse(saved);
+                    this.loadData();
+                    this.showApp();
+                } else {
+                    this.showLogin();
+                }
+                document.getElementById('logDate').valueAsDate = new Date();
+            },
+
+            login() {
+                const email = document.getElementById('loginEmail').value.trim();
+                const password = document.getElementById('loginPassword').value.trim();
+                if (!email || !password) {
+                    alert('Please enter email and password');
+                    return;
+                }
+                this.user = { email };
+                localStorage.setItem('user', JSON.stringify(this.user));
+                this.loadData();
+                this.showApp();
+            },
+
+            logout() {
+                localStorage.removeItem('user');
+                this.user = null;
+                this.data = { leads: [], events: [], team: [], logs: [] };
+                this.showLogin();
+            },
+
+            loadData() {
+                if (!this.user) return;
+                const saved = localStorage.getItem(`data_${this.user.email}`);
+                if (saved) {
+                    try {
+                        this.data = JSON.parse(saved);
+                    } catch (e) {}
+                }
+            },
+
+            saveData() {
+                if (!this.user) return;
+                localStorage.setItem(`data_${this.user.email}`, JSON.stringify(this.data));
+                this.updateDashboard();
+            },
+
+            addLead() {
+                const name = document.getElementById('leadName').value.trim();
+                const phone = document.getElementById('leadPhone').value.trim();
+                const source = document.getElementById('leadSource').value;
+                const status = document.getElementById('leadStatus').value;
+                if (!name || !phone) {
+                    alert('Please fill Name and Phone');
+                    return;
+                }
+                this.data.leads.push({ id: Date.now(), name, phone, source, status });
+                document.getElementById('leadName').value = '';
+                document.getElementById('leadPhone').value = '';
+                this.saveData();
+                this.renderLeads();
+            },
+
+            addEvent() {
+                const ticket = document.getElementById('eventTicket').value.trim();
+                const name = document.getElementById('eventName').value.trim();
+                if (!ticket || !name) {
+                    alert('Please fill all fields');
+                    return;
+                }
+                this.data.events.push({ id: Date.now(), ticket, name });
+                document.getElementById('eventTicket').value = '';
+                document.getElementById('eventName').value = '';
+                this.saveData();
+                this.renderEvents();
+            },
+
+            addTeam() {
+                const name = document.getElementById('teamName').value.trim();
+                const phone = document.getElementById('teamPhone').value.trim();
+                if (!name) {
+                    alert('Please enter name');
+                    return;
+                }
+                this.data.team.push({ id: Date.now(), name, phone });
+                document.getElementById('teamName').value = '';
+                document.getElementById('teamPhone').value = '';
+                this.saveData();
+                this.renderTeam();
+            },
+
+            addLog() {
+                const date = document.getElementById('logDate').value;
+                const contacts = document.getElementById('logContacts').value.trim();
+                if (!date || !contacts) {
+                    alert('Please fill required fields');
+                    return;
+                }
+                this.data.logs.push({
+                    id: Date.now(),
+                    date,
+                    contacts: parseInt(contacts) || 0,
+                    messages: parseInt(document.getElementById('logMessages').value) || 0,
+                    responses: parseInt(document.getElementById('logResponses').value) || 0,
+                    customers: parseInt(document.getElementById('logCustomers').value) || 0
+                });
+                document.getElementById('logContacts').value = '';
+                document.getElementById('logMessages').value = '';
+                document.getElementById('logResponses').value = '';
+                document.getElementById('logCustomers').value = '';
+                this.saveData();
+                this.renderLogs();
+            },
+
+            async generateAITasks() {
+                document.getElementById('aiBtn').disabled = true;
+                document.getElementById('aiBtn').textContent = '⏳ Generating...';
+      
