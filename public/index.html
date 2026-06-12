@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>🎯 Herbalife Business Manager</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html, body { height: 100%; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f5f5f5; color: #1a1a1a; }
+        
+        .container { max-width: 1200px; margin: 0 auto; min-height: 100vh; display: flex; flex-direction: column; }
+        
+        .header { background: #fff; padding: 1.5rem; border-bottom: 1px solid #e0e0e0; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 100; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+        .header-left h1 { font-size: 26px; font-weight: 600; margin: 0 0 0.5rem; }
+        .header-left p { margin: 0; font-size: 12px; color: #666; }
+        .header-right { text-align: right; }
+        .header-email { font-size: 13px; color: #666; margin-bottom: 10px; }
+        
+        .tabs { display: flex; gap: 0; border-bottom: 1px solid #e0e0e0; background: #fff; overflow-x: auto; position: sticky; top: 75px; z-index: 99; }
+        .tab { padding: 12px 24px; cursor: pointer; border-bottom: 3px solid transparent; font-weight: 500; color: #666; white-space: nowrap; transition: all 0.2s; }
+        .tab:hover { color: #2563eb; }
+        .tab.active { border-bottom-color: #2563eb; color: #2563eb; }
+        
+        .content { flex: 1; padding: 2rem; }
+        
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 15px; margin-bottom: 2rem; }
+        .metric { background: #fff; padding: 1.5rem; border-radius: 8px; border: 1px solid #e0e0e0; text-align: center; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+        .metric-label { font-size: 12px; color: #666; margin-bottom: 10px; font-weight: 500; }
+        .metric-value { font-size: 36px; font-weight: 700; color: #2563eb; }
+        
+        .card { background: #fff; border: 1px solid #e0e0e0; border-radius: 8px; padding: 2rem; margin-bottom: 2rem; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+        .card-title { font-size: 18px; font-weight: 600; margin-bottom: 1.5rem; }
+        
+        .form-group { margin-bottom: 12px; }
+        .form-group label { display: block; font-size: 12px; font-weight: 600; margin-bottom: 6px; color: #333; }
+        input, select, textarea { width: 100%; padding: 10px 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; font-family: inherit; }
+        input:focus, select:focus, textarea:focus { outline: none; border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1); }
+        
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        
+        .btn { background: #2563eb; color: #fff; padding: 10px 20px; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 14px; transition: background 0.2s; }
+        .btn:hover { background: #1d4ed8; }
+        .btn-danger { background: #dc2626; }
+        .btn-danger:hover { background: #b91c1c; }
+        .btn-small { padding: 6px 12px; font-size: 12px; }
+        .btn-ai { background: #7c3aed; }
+        .btn-ai:hover { background: #6d28d9; }
+        
+        .table-container { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
+        table th { text-align: left; padding: 12px; border-bottom: 2px solid #e0e0e0; background: #f8f9fa; font-weight: 600; font-size: 12px; }
+        table td { padding: 12px; border-bottom: 1px solid #e0e0e0; font-size: 13px; }
+        table tr:hover { background: #f9fafb; }
+        
+        .badge { display: inline-block; padding: 4px 10px; border-radius: 4px; font-size: 11px; font-weight: 600; }
+        .badge-hot { background: #fee2e2; color: #991b1b; }
+        .badge-warm { background: #fef3c7; color: #92400e; }
+        .badge-new { background: #dbeafe; color: #1e40af; }
+        .badge-converted { background: #dcfce7; color: #166534; }
+        
+        .ai-section { background: linear-gradient(135deg, #f0f9ff 0%, #f3e8ff 100%); border: 1px solid #bfdbfe; border-radius: 8px; padding: 1.5rem; margin-bottom: 2rem; }
+        .ai-response { background: #fff; padding: 1rem; border-radius: 6px; margin-top: 1rem; white-space: pre-wrap; line-height: 1.6; font-size: 13px; color: #1e40af; border-left: 4px solid #2563eb; max-height: 400px; overflow-y: auto; }
+        
+        .empty { text-align: center; padding: 2rem; color: #999; }
+        .hidden { display: none !important; }
+        .loading { opacity: 0.6; pointer-events: none; }
+        
+        .login-container { display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 20px; }
+        .login-box { background: #fff; padding: 40px; border-radius: 12px; box-shadow: 0 10px 40px rgba(0,0,0,0.1); width: 100%; max-width: 400px; }
+        .login-box h1 { font-size: 28px; margin-bottom: 10px; }
+        .login-box p { font-size: 13px; color: #666; margin-bottom: 2rem; }
+        .login-box input { margin-bottom: 12px; }
+        .login-box button { width: 100%; margin-bottom: 15px; }
+        
+        @media (max-width: 768px) {
+            .form-row { grid-template-columns: 1fr; }
+            .grid { grid-template-columns: repeat(2, 1fr); }
+            .card { padding: 1.5rem; }
+            .content { padding: 1rem; }
+            .header { flex-direction: column; align-items: flex-start; gap: 10px; }
+            .header-right { width: 100%; text-align: right; }
+        }
+    </style>
+</head>
+<body>
+    <div id="app"></div>
+
+    <script>
+        class HerbalifeApp {
+            constructor() {
+                this.loggedIn = false;
+                this.user = null;
+                this.activeTab = 'dashboard';
+                this.data = { leads: [], events: [], team: [], dailyLog: [] };
+                this.aiTasks = '';
+                this.aiLoading = false;
+                
+                this.init();
+                this.render();
+            }
+
+            init() {
+                const savedUser = localStorage.getItem('herbalifeUser');
+                if (savedUser) {
+                    this.user = JSON.parse(savedUser);
+                    this.loggedIn = true;
+                    this.loadUserData();
+                }
+            }
+
+            loadUserData() {
+                if (!this.user) return;
+                const saved = localStorage.getItem(`herbalifeData_${this.user.email}`);
+                if (saved) {
+                    try {
+                        this.data = JSON.parse(saved);
+                    } catch (e) {
+                        console.log('Error loading data');
+                    }
+                }
+            }
+
+            saveData() {
+                if (!this.user) return;
+                localStorage.setItem(`herbalifeData_${this.user.email}`, JSON.stringify(this.data));
+            }
+
+            login(email, password) {
+                if (!email || !password) {
+                    alert('Please enter email and password');
+                    return;
+                }
+                this.user = { email };
+                this.loggedIn = true;
+                localStorage.setItem('herbalifeUser', JSON.stringify(this.user));
+                this.loadUserData();
+                this.render();
+            }
+
+            logout() {
+                localStorage.removeItem('herbalifeUser');
+                this.loggedIn = false;
+                this.user = null;
+                this.data = { leads: [], events: [], team: [], dailyLog: [] };
+                this.activeTab = 'dashboard';
+                this.render();
+            }
+
+            addLead(name, phone, source, interest, status) {
+                if (!name || !phone) {
+                    alert('Please fill Name and Phone');
+                    return;
+                }
+                this.data.leads.push({
+                    id: Date.now(),
+                    name, phone, source, interest, status,
+                    date: new Date().toLocaleDateString()
+                });
+                this.saveData();
+                this.render();
+            }
+
+            addEvent(ticket, name, paid) {
+                if (!ticket || !name) {
+                    alert('Please fill all fields');
+                    return;
+                }
+                this.data.events.push({ id: Date.now(), ticket, name, paid });
+                this.saveData();
+                this.render();
+            }
+
+            addTeam(name, phone, level, category) {
+                if (!name) {
+                    alert('Please enter name');
+                    return;
+                }
+                this.data.team.push({ id: Date.now(), name, phone, level, category });
+                this.saveData();
+                this.render();
+            }
+
+            addLog(date, contacts, messages, responses, customers) {
+                if (!date || !contacts) {
+                    alert('Please fill required fields');
+                    return;
+                }
+                this.data.dailyLog.push({
+                    id: Date.now(),
+                    date, 
+                    contacts: parseInt(contacts) || 0,
+                    messages: parseInt(messages) || 0,
+                    responses: parseInt(responses) || 0,
+                    customers: parseInt(customers) || 0
+                });
+                this.saveData();
+                this.render();
+            }
+
+            async generateAITasks() {
+                this.aiLoading = true;
+                this.render();
+                
+                try {
+                    const response = await fetch('https://api.anthropic.com/v1/messages', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            model: 'claude-sonnet-4-20250514',
+                            max_tokens: 1000,
+                            messages: [{
+                                role: 'user',
+                                content: `Generate today's daily task list for a Herbalife distributor in India. Include:
+MORNING (7-9 AM) - 5 specific tasks with time
+AFTERNOON (12-2 PM) - 5 specific tasks with time
+EVENING (7-8 PM) - 3 specific tasks with time
+
+Current stats: ${this.data.leads.length} total leads, ${this.data.leads.filter(l => l.status === 'Hot Lead').length} hot leads, ${this.data.leads.filter(l => l.status === 'Converted').length} customers, ${this.data.team.length} team members.
+
+Make tasks specific, actionable, and realistic. Focus on high-impact activities.`
+                            }]
+                        })
+                    });
+
+                    const result = await response.json();
+                    if (result.content && result.content[0]) {
+                        this.aiTasks = result.content[0].text;
+                    } else {
+                        this.aiTasks = 'Error generating tasks. Please try again.';
+                    }
+                } catch (error) {
+                    this.aiTasks = 'Error: ' + error.message;
+                }
+                
+                this.aiLoading = false;
+                this.render();
+            }
+
+            deleteLead(id) {
+                this.data.leads = this.data.leads.filter(l => l.id !== id);
+                this.saveData();
+                this.render();
+            }
+
+            deleteEvent(id) {
+                this.data.events = this.data.events.filter(e => e.id !== id);
+                this.saveData();
+                this.render();
+            }
+
+            deleteTeam(id) {
+                this.data.team = this.data.team.filter(t => t.id !== id);
+                this.saveData();
+                this.render();
+            }
+
+            deleteLog(id) {
+                this.data.dailyLog = this.data.dailyLog.filter(l => l.id !== id);
+                this.saveData();
+                this.render();
+            }
+
+            getStatusBadge(status) {
+                const badges = {
+                    'Hot Lead': 'badge-hot',
+                    'Warm Lead': 'badge-warm',
+                    'New': 'badge-new',
+                    'Converted': 'badge-converted'
+                };
+                return badges[status] || 'badge-new';
+            }
+
+            render() {
+                const app = document.getElementById('app');
+                
+                if (!this.loggedIn) {
+                    app.innerHTML = `
+                        <div class="login-container">
+                            <div class="login-box">
+                                <h1>🎯 Herbalife Business Manager</h1>
+                                <p>AI-powered lead management with cloud sync</p>
+                                <input type="email" id="loginEmail" placeholder="Email address">
+                                <input type="password" id="loginPassword" placeholder="Password">
+                                <button class="btn" onclick="window.app.login(document.getElementById('loginEmail').value, document.getElementById('loginPassword').value)">Sign In / Create Account</button>
+                                <div style="margin-top: 20px; padding: 15px; background: #f0f9ff; border: 1px solid #bfdbfe; border-radius: 6px; font-size: 12px; color: #1e40af; text-align: center;">
+                                    💡 Use any email and password to get started!
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    return;
+                }
+
+                const hotLeads = this.data.leads.filter(l => l.status === 'Hot Lead').length;
+                const customers = this.data.leads.filter(l => l.status === 'Converted').length;
+                const totalContacts = this.data.dailyLog.reduce((sum, log) => sum + log.contacts, 0);
+                const totalMessages = this.data.dailyLog.reduce((sum, log) => sum + log.messages, 0);
+
+                app.innerHTML = `
+                    <div class="container">
+                        <div class="header">
+                            <div class="header-left">
+                                <h1>🎯 Herbalife Business Manager</h1>
+                                <p>☁️ Cloud Synced • Data saved automatically</p>
+                            </div>
+                            <div class="header-right">
+                                <div class="header-email">👤 ${this.user.email}</div>
+                                <button class="btn btn-danger" onclick="window.app.logout()">Logout</button>
+                            </div>
+                        </div>
+
+                        <div class="tabs">
+                            ${['dashboard', 'leads', 'events', 'team', 'daily'].map(t => `
+                                <div class="tab ${this.activeTab === t ? 'active' : ''}" onclick="window.app.switchTab('${t}')">
+                                    ${t === 'dashboard' ? '📊 Dashboard' : ''}
+                                    ${t === 'leads' ? '📋 Leads' : ''}
+                                    ${t === 'events' ? '🎟️ Events' : ''}
+                                    ${t === 'team' ? '👥 Team' : ''}
+                                    ${t === 'daily' ? '📅 Daily Log' : ''}
+                                </div>
+                            `).join('')}
+                        </div>
+
+                        <div class="content" id="content"></div>
+                    </div>
+                `;
+
+                this.renderTab();
+            }
+
+            renderTab() {
+                const content = document.getElementById('content');
+                
+                if (this.activeTab === 'dashboard') {
+                    const hotLeads = this.data.leads.filter(l => l.status === 'Hot Lead').length;
+                    const customers = this.data.leads.filter(l => l.status === 'Converted').length;
+                    const totalContacts = this.data.dailyLog.reduce((sum, log) => sum + log.contacts, 0);
+
+                    content.innerHTML = `
+                        <div class="grid">
+                            <div class="metric">
+                                <div class="metric-label">Total Leads</div>
+                                <div class="metric-value">${this.data.leads.length}</div>
+                            </div>
+                            <div class="metric">
+                                <div class="metric-label">Hot Leads 🔥</div>
+                                <div class="metric-value">${hotLeads}</div>
+                            </div>
+                            <div class="metric">
+                                <div class="metric-label">Customers ✅</div>
+                                <div class="metric-value">${customers}</div>
+                            </div>
+                            <div class="metric">
+                                <div class="metric-label">Team Members</div>
+                                <div class="metric-value">${this.data.team.length}</div>
+                            </div>
+                            <div class="metric">
+                                <div class="metric-label">Total Contacts</div>
+                                <div class="metric-value">${totalContacts}</div>
+                            </div>
+                            <div class="metric">
+                                <div class="metric-label">Events</div>
+                                <div class="metric-value">${this.data.events.length}</div>
+                            </div>
+                        </div>
+
+                        <div class="ai-section">
+                            <div class="card-title">🤖 AI Daily Task Generator</div>
+                            <p style="margin-bottom: 1rem; font-size: 13px; color: #555;">Get personalized daily tasks based on your current business stats</p>
+                            <button class="btn btn-ai ${this.aiLoading ? 'loading' : ''}" onclick="window.app.generateAITasks()">
+                                ${this.aiLoading ? '⏳ Generating...' : '✨ Generate Today\'s Tasks'}
+                            </button>
+                            ${this.aiTasks ? `<div class="ai-response">${this.aiTasks}</div>` : ''}
+                        </div>
+                    `;
+                }
+
+                else if (this.activeTab === 'leads') {
+                    content.innerHTML = `
+                        <div class="card">
+                            <div class="card-title">➕ Add New Lead</div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Full Name *</label>
+                                    <input type="text" id="leadName" placeholder="Enter name">
+                                </div>
+                                <div class="form-group">
+                                    <label>Phone Number *</label>
+                                    <input type="text" id="leadPhone" placeholder="Enter phone">
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Source</label>
+                                    <select id="leadSource">
+                                        <option>WhatsApp</option>
+                                        <option>Instagram</option>
+                                        <option>Facebook</option>
+                                        <option>Referral</option>
+                                        <option>Event</option>
+                                        <option>Cold Contact</option>
+                                    </selec
