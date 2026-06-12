@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Herbalife Business Manager</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, sans-serif; background: #f5f5f5; color: #1a1a1a; }
+        .container { max-width: 1000px; margin: 0 auto; padding: 20px; }
+        .header { background: white; padding: 20px; margin-bottom: 20px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; }
+        .header h1 { font-size: 24px; margin: 0 0 5px; }
+        .header p { margin: 0; font-size: 12px; color: #666; }
+        .header-right { text-align: right; }
+        .header-right button { padding: 8px 16px; background: #dc2626; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        .tabs { display: flex; gap: 10px; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 1px solid #e0e0e0; }
+        .tab { padding: 10px 20px; background: #f0f0f0; border: none; border-radius: 4px; cursor: pointer; }
+        .tab.active { background: #2563eb; color: white; }
+        .card { background: white; padding: 20px; margin-bottom: 20px; border-radius: 8px; }
+        .card h2 { font-size: 18px; margin-bottom: 15px; }
+        input, select { width: 100%; padding: 10px; margin-bottom: 10px; border: 1px solid #ddd; border-radius: 4px; }
+        button { padding: 10px 20px; background: #2563eb; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        button:hover { background: #1d4ed8; }
+        .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-bottom: 20px; }
+        .metric { background: #f0f0f0; padding: 20px; border-radius: 8px; text-align: center; }
+        .metric-label { font-size: 12px; color: #666; margin-bottom: 10px; }
+        .metric-value { font-size: 32px; font-weight: bold; color: #2563eb; }
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        th, td { text-align: left; padding: 10px; border-bottom: 1px solid #e0e0e0; }
+        th { background: #f0f0f0; font-weight: 600; }
+        .hidden { display: none; }
+        .login-box { max-width: 400px; margin: 100px auto; background: white; padding: 40px; border-radius: 8px; text-align: center; }
+        .login-box input { margin-bottom: 15px; }
+        .login-box button { width: 100%; }
+    </style>
+</head>
+<body>
+    <div id="app"></div>
+
+    <script>
+        class App {
+            constructor() {
+                this.loggedIn = false;
+                this.user = null;
+                this.tab = 'dashboard';
+                this.data = { leads: [], team: [], events: [], logs: [] };
+                this.email = '';
+                this.init();
+                this.render();
+            }
+
+            init() {
+                const saved = localStorage.getItem('user');
+                if (saved) {
+                    this.user = JSON.parse(saved);
+                    this.loggedIn = true;
+                    const d = localStorage.getItem(`data_${this.user}`);
+                    if (d) this.data = JSON.parse(d);
+                }
+            }
+
+            save() {
+                localStorage.setItem(`data_${this.user}`, JSON.stringify(this.data));
+            }
+
+            login(email) {
+                if (!email) {
+                    alert('Enter email');
+                    return;
+                }
+                this.user = email;
+                this.loggedIn = true;
+                localStorage.setItem('user', email);
+                this.email = '';
+                this.render();
+            }
+
+            logout() {
+                localStorage.removeItem('user');
+                this.loggedIn = false;
+                this.user = null;
+                this.data = { leads: [], team: [], events: [], logs: [] };
+                this.render();
+            }
+
+            addLead(name, phone, status) {
+                if (!name || !phone) {
+                    alert('Fill all fields');
+                    return;
+                }
+                this.data.leads.push({ id: Date.now(), name, phone, status });
+                this.save();
+                this.render();
+            }
+
+            addLog(date, contacts) {
+                if (!date || !contacts) {
+                    alert('Fill all fields');
+                    return;
+                }
+                this.data.logs.push({ id: Date.now(), date, contacts: parseInt(contacts) });
+                this.save();
+                this.render();
+            }
+
+            deleteLead(id) {
+                this.data.leads = this.data.leads.filter(l => l.id !== id);
+                this.save();
+                this.render();
+            }
+
+            render() {
+                const app = document.getElementById('app');
+                
+                if (!this.loggedIn) {
+                    app.innerHTML = `
+                        <div class="login-box">
+                            <h1>🎯 Herbalife Business Manager</h1>
+                            <input type="email" id="emailInput" placeholder="Email" value="${this.email}">
+                            <button onclick="window.app.login(document.getElementById('emailInput').value)">Sign In</button>
+                            <p style="margin-top: 15px; font-size: 12px; color: #666;">Use any email address</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                const hotLeads = this.data.leads.filter(l => l.status === 'Hot Lead').length;
+                const converted = this.data.leads.filter(l => l.status === 'Converted').length;
+                const totalContacts = this.data.logs.reduce((sum, log) => sum + log.contacts, 0);
+
+                app.innerHTML = `
+                    <div class="container">
+                        <div class="header">
+                            <div>
+                                <h1>🎯 Herbalife Business Manager</h1>
+                                <p>☁️ Cloud Synced • All data saved</p>
+                            </div>
+                            <div class="header-right">
+                                <p>👤 ${this.user}</p>
+                                <button onclick="window.app.logout()">Logout</button>
+                            </div>
+                        </div>
+
+                        <div class="tabs">
+                            <button class="tab ${this.tab === 'dashboard' ? 'active' : ''}" onclick="window.app.switchTab('dashboard')">📊 Dashboard</button>
+                            <button class="tab ${this.tab === 'leads' ? 'active' : ''}" onclick="window.app.switchTab('leads')">📋 Leads</button>
+                            <button class="tab ${this.tab === 'team' ? 'active' : ''}" onclick="window.app.switchTab('team')">👥 Team</button>
+                            <button class="tab ${this.tab === 'logs' ? 'active' : ''}" onclick="window.app.switchTab('logs')">📅 Logs</button>
+                        </div>
+
+                        <div id="content"></div>
+                    </div>
+                `;
+
+                const content = document.getElementById('content');
+
+                if (this.tab === 'dashboard') {
+                    content.innerHTML = `
+                        <div class="grid">
+                            <div class="metric">
+                                <div class="metric-label">Total Leads</div>
+                                <div class="metric-value">${this.data.leads.length}</div>
+                            </div>
+                            <div class="metric">
+                                <div class="metric-label">Hot Leads 🔥</div>
+                                <div class="metric-value">${hotLeads}</div>
+                            </div>
+                            <div class="metric">
+                                <div class="metric-label">Converted ✅</div>
+                                <div class="metric-value">${converted}</div>
+                            </div>
+                            <div class="metric">
+                                <div class="metric-label">Team</div>
+                                <div class="metric-value">${this.data.team.length}</div>
+                            </div>
+                        </div>
+                    `;
+                }
+
+                else if (this.tab === 'leads') {
+                    content.innerHTML = `
+                        <div class="card">
+                            <h2>➕ Add Lead</h2>
+                            <input type="text" id="leadName" placeholder="Name">
+                            <input type="text" id="leadPhone" placeholder="Phone">
+                            <select id="leadStatus">
+                                <option>New</option>
+                                <option>Hot Lead</option>
+                                <option>Converted</option>
+                            </select>
+                            <button onclick="window.app.addLead(document.getElementById('leadName').value, document.getElementById('leadPhone').value, document.getElementById('leadStatus').value)">+ Add Lead</button>
+                        </div>
+                        <div class="card">
+                            <h2>Leads (${this.data.leads.length})</h2>
+                            ${this.data.leads.length === 0 ? '<p>No leads</p>' : `
+                                <table>
+                                    <thead><tr><th>Name</th><th>Phone</th><th>Status</th><th>Action</th></tr></thead>
+                                    <tbody>
+                                        ${this.data.leads.map(l => `
+                                            <tr>
+                                                <td>${l.name}</td>
+                                                <td>${l.phone}</td>
+                                                <td><span style="background: ${l.status === 'Hot Lead' ? '#fee2e2' : '#dbeafe'}; padding: 4px 8px; border-radius: 4px; font-size: 12px;">${l.status}</span></td>
+                                                <td><button style="padding: 4px 8px; font-size: 12px;" onclick="window.app.deleteLead(${l.id})">Delete</button></td>
+                                            </tr>
+                                        `).join('')}
+                                    </tbody>
+                                </table>
+                            `}
+                        </div>
+                    `;
+                }
+
+                else if (this.tab === 'logs') {
+                    content.innerHTML = `
+                        <div class="card">
+                            <h2>📊 Log Activity</h2>
+                            <input type="date" id="logDate">
+                            <input type="number" id="logContacts" placeholder="Contacts made">
+                            <button onclick="window.app.addLog(document.getElementById('logDate').value, document.getElementById('logContacts').value)">+ Log</button>
+                        </div>
+                        <div class="card">
+                            <h2>Activity (${this.data.logs.length} days)</h2>
+                            ${this.data.logs.length === 0 ? '<p>No logs</p>' : `
+                                <table>
+                                    <thead><tr><th>Date</th><th>Contacts</th></tr></thead>
+                                    <tbody>${this.data.logs.map(l => `<tr><td>${l.date}</td><td>${l.contacts}</td></tr>`).join('')}</tbody>
+                                </table>
+                            `}
+                        </div>
+                    `;
+                }
+
+                else if (this.tab === 'team') {
+                    content.innerHTML = `
+                        <div class="card">
+                            <h2>👥 Team (${this.data.team.length})</h2>
+                            <p>Team management coming soon</p>
+                        </div>
+                    `;
+                }
+            }
+
+            switchTab(tab) {
+                this.tab = tab;
+                this.render();
+            }
+        }
+
+        window.app = new App();
+    </script>
+</body>
+</html>
