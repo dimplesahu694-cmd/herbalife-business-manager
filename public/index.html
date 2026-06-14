@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Herbalife</title>
+    <style>
+        body { font-family: Arial; background: #f5f5f5; margin: 0; padding: 20px; }
+        .login { display: none; max-width: 400px; margin: 100px auto; background: white; padding: 40px; border-radius: 8px; text-align: center; }
+        .login.show { display: block; }
+        .app { display: none; max-width: 1000px; margin: 0 auto; background: white; padding: 20px; }
+        .app.show { display: block; }
+        h1 { color: #2563eb; }
+        input, select { width: 100%; padding: 10px; margin: 10px 0; border: 1px solid #ddd; border-radius: 4px; }
+        button { width: 100%; padding: 10px; background: #2563eb; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        button:hover { background: #1d4ed8; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { padding: 10px; border-bottom: 1px solid #ddd; text-align: left; }
+        th { background: #f0f0f0; }
+        .metric { background: #f0f0f0; padding: 20px; text-align: center; margin: 10px; border-radius: 4px; display: inline-block; width: 20%; }
+        .metric-val { font-size: 28px; font-weight: bold; color: #2563eb; }
+        .tabs { margin: 20px 0; border-bottom: 2px solid #ddd; }
+        .tab { padding: 10px 20px; background: none; border: none; cursor: pointer; font-size: 14px; }
+        .tab.active { border-bottom: 3px solid #2563eb; color: #2563eb; }
+        .tab-content { display: none; }
+        .tab-content.show { display: block; }
+    </style>
+</head>
+<body>
+
+<div class="login show" id="loginDiv">
+    <h1>🎯 Herbalife Manager</h1>
+    <p>AI-powered lead management</p>
+    <input type="email" id="email" placeholder="Email">
+    <input type="password" id="password" placeholder="Password">
+    <button onclick="appLogin()">Sign In</button>
+    <p style="font-size: 12px; color: #666; margin-top: 20px;">Use any email and password</p>
+</div>
+
+<div class="app" id="appDiv">
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+        <h1>🎯 Herbalife Manager</h1>
+        <button style="width: 100px; background: #dc2626;" onclick="appLogout()">Logout</button>
+    </div>
+    <p id="emailDisplay" style="color: #666;"></p>
+
+    <div class="tabs">
+        <button class="tab active" onclick="switchTab('dashboard')">📊 Dashboard</button>
+        <button class="tab" onclick="switchTab('leads')">📋 Leads</button>
+        <button class="tab" onclick="switchTab('events')">🎟️ Events</button>
+        <button class="tab" onclick="switchTab('team')">👥 Team</button>
+        <button class="tab" onclick="switchTab('logs')">📅 Logs</button>
+    </div>
+
+    <!-- DASHBOARD -->
+    <div class="tab-content show" id="dashboard">
+        <h2>Dashboard</h2>
+        <div class="metric">
+            <div>Total Leads</div>
+            <div class="metric-val" id="totalLeads">0</div>
+        </div>
+        <div class="metric">
+            <div>Hot Leads</div>
+            <div class="metric-val" id="hotLeads">0</div>
+        </div>
+        <div class="metric">
+            <div>Customers</div>
+            <div class="metric-val" id="customers">0</div>
+        </div>
+        <div class="metric">
+            <div>Team</div>
+            <div class="metric-val" id="teamCount">0</div>
+        </div>
+    </div>
+
+    <!-- LEADS -->
+    <div class="tab-content" id="leads">
+        <h2>Add Lead</h2>
+        <input type="text" id="leadName" placeholder="Name">
+        <input type="text" id="leadPhone" placeholder="Phone">
+        <select id="leadStatus">
+            <option>New</option>
+            <option>Hot Lead</option>
+            <option>Converted</option>
+        </select>
+        <button onclick="addLead()">+ Add Lead</button>
+        <h3>Leads List</h3>
+        <div id="leadsDiv"></div>
+    </div>
+
+    <!-- EVENTS -->
+    <div class="tab-content" id="events">
+        <h2>Add Event</h2>
+        <input type="text" id="eventTicket" placeholder="Ticket #">
+        <input type="text" id="eventName" placeholder="Name">
+        <button onclick="addEvent()">+ Add Event</button>
+        <h3>Events List</h3>
+        <div id="eventsDiv"></div>
+    </div>
+
+    <!-- TEAM -->
+    <div class="tab-content" id="team">
+        <h2>Add Team Member</h2>
+        <input type="text" id="teamName" placeholder="Name">
+        <input type="text" id="teamPhone" placeholder="Phone">
+        <button onclick="addTeam()">+ Add Team</button>
+        <h3>Team List</h3>
+        <div id="teamDiv"></div>
+    </div>
+
+    <!-- LOGS -->
+    <div class="tab-content" id="logs">
+        <h2>Log Activity</h2>
+        <input type="date" id="logDate">
+        <input type="number" id="logContacts" placeholder="Contacts">
+        <button onclick="addLog()">+ Log</button>
+        <h3>Activity Log</h3>
+        <div id="logsDiv"></div>
+    </div>
+</div>
+
+<script>
+let user = null;
+let data = { leads: [], events: [], team: [], logs: [] };
+
+function appLogin() {
+    const email = document.getElementById('email').value;
+    const password = document.getElementById('password').value;
+    if (!email || !password) {
+        alert('Fill email and password');
+        return;
+    }
+    user = { email };
+    localStorage.setItem('user', JSON.stringify(user));
+    localStorage.setItem('data_' + email, JSON.stringify(data));
+    showApp();
+}
+
+function appLogout() {
+    localStorage.removeItem('user');
+    user = null;
+    document.getElementById('loginDiv').classList.add('show');
+    document.getElementById('appDiv').classList.remove('show');
+}
+
+function showApp() {
+    document.getElementById('loginDiv').classList.remove('show');
+    document.getElementById('appDiv').classList.add('show');
+    document.getElementById('emailDisplay').textContent = '👤 ' + user.email;
+    loadData();
+    updateDashboard();
+}
+
+function loadData() {
+    const saved = localStorage.getItem('data_' + user.email);
+    if (saved) data = JSON.parse(saved);
+}
+
+function saveData() {
+    localStorage.setItem('data_' + user.email, JSON.stringify(data));
+    updateDashboard();
+}
+
+function updateDashboard() {
+    document.getElementById('totalLeads').textContent = data.leads.length;
+    document.getElementById('hotLeads').textContent = data.leads.filter(l => l.status === 'Hot Lead').length;
+    document.getElementById('customers').textContent = data.leads.filter(l => l.status === 'Converted').length;
+    document.getElementById('teamCount').textContent = data.team.length;
+}
+
+function addLead() {
+    const name = document.getElementById('leadName').value;
+    const phone = document.getElementById('leadPhone').value;
+    const status = document.getElementById('leadStatus').value;
+    if (!name || !phone) { alert('Fill all'); return; }
+    data.leads.push({ id: Date.now(), name, phone, status });
+    document.getElementById('leadName').value = '';
+    document.getElementById('leadPhone').value = '';
+    saveData();
+    renderLeads();
+}
+
+function renderLeads() {
+    let html = '<table><tr><th>Name</th><th>Phone</th><th>Status</th><th>Action</th></tr>';
+    data.leads.forEach(l => {
+        html += '<tr><td>' + l.name + '</td><td>' + l.phone + '</td><td>' + l.status + '</td><td><button style="width:80px; background:#dc2626;" onclick="deleteLead(' + l.id + ')">Delete</button></td></tr>';
+    });
+    html += '</table>';
+    document.getElementById('leadsDiv').innerHTML = html;
+}
+
+function deleteLead(id) {
+    data.leads = data.leads.filter(l => l.id !== id);
+    saveData();
+    renderLeads();
+}
+
+function addEvent() {
+    const ticket = document.getElementById('eventTicket').value;
+    const name = document.getElementById('eventName').value;
+    if (!ticket || !name) { alert('Fill all'); return; }
+    data.events.push({ id: Date.now(), ticket, name });
+    document.getElementById('eventTicket').value = '';
+    document.getElementById('eventName').value = '';
+    saveData();
+    renderEvents();
+}
+
+function renderEvents() {
+    let html = '<table><tr><th>Ticket</th><th>Name</th><th>Action</th></tr>';
+    data.events.forEach(e => {
+        html += '<tr><td>' + e.ticket + '</td><td>' + e.name + '</td><td><button style="width:80px; background:#dc2626;" onclick="deleteEvent(' + e.id + ')">Delete</button></td></tr>';
+    });
+    html += '</table>';
+    document.getElementById('eventsDiv').innerHTML = html;
+}
+
+function deleteEvent(id) {
+    data.events = data.events.filter(e => e.id !== id);
+    saveData();
+    renderEvents();
+}
+
+function addTeam() {
+    const name = document.getElementById('teamName').value;
+    const phone = document.getElementById('teamPhone').value;
+    if (!name) { alert('Fill name'); return; }
+    data.team.push({ id: Date.now(), name, phone });
+    document.getElementById('teamName').value = '';
+    document.getElementById('teamPhone').value = '';
+    saveData();
+    renderTeam();
+}
+
+function renderTeam() {
+    let html = '<table><tr><th>Name</th><th>Phone</th><th>Action</th></tr>';
+    data.team.forEach(t => {
+        html += '<tr><td>' + t.name + '</td><td>' + t.phone + '</td><td><button style="width:80px; background:#dc2626;" onclick="deleteTeam(' + t.id + ')">Delete</button></td></tr>';
+    });
+    html += '</table>';
+    document.getElementById('teamDiv').innerHTML = html;
+}
+
+function deleteTeam(id) {
+    data.team = data.team.filter(t => t.id !== id);
+    saveData();
+    renderTeam();
+}
+
+function addLog() {
+    const date = document.getElementById('logDate').value;
+    const contacts = document.getElementById('logContacts').value;
+    if (!date || !contacts) { alert('Fill all'); return; }
+    data.logs.push({ id: Date.now(), date, contacts: parseInt(contacts) });
+    document.getElementById('logContacts').value = '';
+    saveData();
+    renderLogs();
+}
+
+function renderLogs() {
+    let html = '<table><tr><th>Date</th><th>Contacts</th><th>Action</th></tr>';
+    data.logs.forEach(l => {
+        html += '<tr><td>' + l.date + '</td><td>' + l.contacts + '</td><td><button style="width:80px; background:#dc2626;" onclick="deleteLog(' + l.id + ')">Delete</button></td></tr>';
+    });
+    html += '</table>';
+    document.getElementById('logsDiv').innerHTML = html;
+}
+
+function deleteLog(id) {
+    data.logs = data.logs.filter(l => l.id !== id);
+    saveData();
+    renderLogs();
+}
+
+function switchTab(tab) {
+    document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('show'));
+    document.querySelectorAll('.tab').forEach(el => el.classList.remove('active'));
+    document.getElementById(tab).classList.add('show');
+    event.target.classList.add('active');
+}
+
+// Check if already logged in
+window.addEventListener('load', function() {
+    const saved = localStorage.getItem('user');
+    if (saved) {
+        user = JSON.parse(saved);
+        showApp();
+    }
+    document.getElementById('logDate').valueAsDate = new Date();
+});
+</script>
+
+</body>
+</html>
