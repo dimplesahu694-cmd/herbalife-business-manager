@@ -52,16 +52,17 @@
         .card h2 { font-size: 18px; font-weight: 600; margin-bottom: 15px; }
         
         .form-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 12px; }
-        input, select, textarea { padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; font-family: inherit; }
+        input, select, textarea { padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; font-family: inherit; width: 100%; }
         input:focus, select:focus { outline: none; border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1); }
         
         .btn { padding: 10px 20px; background: #2563eb; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 14px; }
         .btn:hover { background: #1d4ed8; }
         .btn-danger { background: #dc2626; }
         .btn-danger:hover { background: #b91c1c; }
+        .btn-warning { background: #f59e0b; }
+        .btn-warning:hover { background: #d97706; }
         .btn-small { padding: 6px 12px; font-size: 12px; }
         .btn-success { background: #16a34a; }
-        .btn-success:hover { background: #15803d; }
         
         table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 13px; }
         th { text-align: left; padding: 12px; border-bottom: 2px solid #e0e0e0; background: #f8f9fa; font-weight: 600; }
@@ -74,21 +75,30 @@
         .badge-converted { background: #dcfce7; color: #166534; }
         .badge-pending { background: #fef3c7; color: #92400e; }
         
-        .event-attendees { background: #f9fafb; padding: 15px; border-radius: 6px; margin-bottom: 15px; }
-        .attendee-row { display: grid; grid-template-columns: 1fr 1fr 1fr auto; gap: 10px; margin-bottom: 10px; align-items: center; }
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); align-items: center; justify-content: center; z-index: 1000; }
+        .modal.show { display: flex; }
+        .modal-content { background: white; padding: 30px; border-radius: 8px; max-width: 500px; width: 90%; max-height: 80vh; overflow-y: auto; }
+        .modal-content h2 { margin-bottom: 20px; }
+        .modal-close { float: right; cursor: pointer; font-size: 24px; font-weight: bold; }
+        
+        .event-card { background: #f9fafb; border: 1px solid #e0e0e0; border-radius: 8px; padding: 20px; margin-bottom: 20px; }
+        .event-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+        .event-header h3 { margin: 0; }
+        
+        .attendee-item { background: white; padding: 12px; border-radius: 6px; margin-bottom: 10px; display: grid; grid-template-columns: 1fr 1fr 1fr auto auto; gap: 10px; align-items: center; border: 1px solid #e0e0e0; }
+        
+        .ai-box { background: linear-gradient(135deg, #f0f9ff 0%, #f3e8ff 100%); border: 1px solid #bfdbfe; border-radius: 8px; padding: 20px; margin-bottom: 20px; }
+        .ai-response { background: white; padding: 15px; border-radius: 6px; margin-top: 15px; border-left: 4px solid #2563eb; max-height: 500px; overflow-y: auto; white-space: pre-wrap; line-height: 1.5; font-size: 12px; }
         
         .todo-item { display: flex; align-items: center; gap: 10px; padding: 12px; background: #f9fafb; border-radius: 6px; margin-bottom: 10px; }
         .todo-item input[type="checkbox"] { width: 20px; height: 20px; cursor: pointer; }
         .todo-item.done label { text-decoration: line-through; color: #999; }
         .todo-item label { flex: 1; cursor: pointer; }
         
-        .ai-box { background: linear-gradient(135deg, #f0f9ff 0%, #f3e8ff 100%); border: 1px solid #bfdbfe; border-radius: 8px; padding: 20px; margin-bottom: 20px; }
-        .ai-response { background: white; padding: 15px; border-radius: 6px; margin-top: 15px; border-left: 4px solid #2563eb; max-height: 400px; overflow-y: auto; white-space: pre-wrap; line-height: 1.5; font-size: 12px; }
-        
         @media (max-width: 768px) {
             .form-row { grid-template-columns: 1fr; }
-            .attendee-row { grid-template-columns: 1fr; }
-            .header { flex-direction: column; align-items: flex-start; gap: 10px; }
+            .attendee-item { grid-template-columns: 1fr; }
+            .event-header { flex-direction: column; align-items: flex-start; gap: 10px; }
         }
     </style>
 </head>
@@ -105,7 +115,6 @@
                 <button class="auth-tab" onclick="switchAuthTab('signup')">Sign Up</button>
             </div>
             
-            <!-- SIGN IN -->
             <form class="auth-form show" id="signinForm" onsubmit="handleSignIn(event)">
                 <input type="email" placeholder="Email" required id="signinEmail">
                 <input type="password" placeholder="Password" required id="signinPassword">
@@ -113,7 +122,6 @@
                 <div class="info-box">📧 Enter your email and password</div>
             </form>
             
-            <!-- SIGN UP -->
             <form class="auth-form" id="signupForm" onsubmit="handleSignUp(event)">
                 <input type="email" placeholder="Email" required id="signupEmail">
                 <input type="password" placeholder="Password (min 6 chars)" required id="signupPassword" minlength="6">
@@ -168,11 +176,11 @@
                             <div class="metric-value" id="eventsCount">0</div>
                         </div>
                         <div class="metric">
-                            <div class="metric-label">Tasks</div>
-                            <div class="metric-value" id="tasksCount">0</div>
+                            <div class="metric-label">Total Attendees</div>
+                            <div class="metric-value" id="attendeesCount">0</div>
                         </div>
                         <div class="metric">
-                            <div class="metric-label">To-Do</div>
+                            <div class="metric-label">To-Do Tasks</div>
                             <div class="metric-value" id="todoCount">0</div>
                         </div>
                     </div>
@@ -238,15 +246,10 @@
                 <!-- AI TASKS -->
                 <div class="tab-content" id="tasks">
                     <div class="ai-box">
-                        <h2>🤖 AI Task Generator</h2>
-                        <p style="font-size: 13px; color: #555; margin-bottom: 15px;">Generate personalized tasks based on your business stats</p>
-                        <button class="btn" id="aiBtn" onclick="generateAITasks()">✨ Generate Tasks</button>
+                        <h2>🤖 AI Daily Task Generator</h2>
+                        <p style="font-size: 13px; color: #555; margin-bottom: 15px;">Generate personalized daily tasks based on your business</p>
+                        <button class="btn" id="aiBtn" onclick="generateAITasks()">✨ Generate Daily Tasks</button>
                         <div id="aiResponse"></div>
-                    </div>
-
-                    <div class="card">
-                        <h2>📋 My AI Tasks</h2>
-                        <div id="aiTasksList"></div>
                     </div>
                 </div>
 
@@ -275,14 +278,46 @@
         </div>
     </div>
 
+    <!-- EDIT LEAD MODAL -->
+    <div class="modal" id="editLeadModal">
+        <div class="modal-content">
+            <span class="modal-close" onclick="closeEditLeadModal()">&times;</span>
+            <h2>Edit Lead</h2>
+            <div class="form-row">
+                <input type="text" id="editLeadName" placeholder="Full Name">
+                <input type="text" id="editLeadPhone" placeholder="Phone Number">
+            </div>
+            <div class="form-row">
+                <select id="editLeadSource">
+                    <option>WhatsApp</option>
+                    <option>Instagram</option>
+                    <option>Facebook</option>
+                    <option>Referral</option>
+                    <option>Event</option>
+                    <option>Cold Contact</option>
+                </select>
+                <select id="editLeadStatus">
+                    <option>New</option>
+                    <option>Hot Lead</option>
+                    <option>Warm Lead</option>
+                    <option>Pending Follow-up</option>
+                    <option>Converted</option>
+                </select>
+            </div>
+            <div class="form-row">
+                <input type="date" id="editFollowupDate">
+                <input type="date" id="editNextFollowupDate">
+            </div>
+            <textarea id="editLeadNotes" placeholder="Notes" style="width: 100%; margin-bottom: 12px;"></textarea>
+            <button class="btn" onclick="saveEditLead()">Save Changes</button>
+            <button class="btn btn-danger" style="margin-left: 10px;" onclick="closeEditLeadModal()">Cancel</button>
+        </div>
+    </div>
+
     <script>
         let user = null;
-        let data = {
-            leads: [],
-            events: [],
-            aiTasks: [],
-            todos: []
-        };
+        let data = { leads: [], events: [], todos: [] };
+        let editingLeadId = null;
 
         // AUTHENTICATION
         function handleSignIn(e) {
@@ -335,7 +370,7 @@
         function handleLogout() {
             localStorage.removeItem('currentUser');
             user = null;
-            data = { leads: [], events: [], aiTasks: [], todos: [] };
+            data = { leads: [], events: [], todos: [] };
             document.getElementById('authPage').classList.add('show');
             document.getElementById('appPage').classList.remove('show');
             document.getElementById('signinEmail').value = '';
@@ -372,7 +407,7 @@
             updateDashboard();
         }
 
-        // LEADS
+        // LEADS WITH EDIT
         function addLead() {
             const name = document.getElementById('leadName').value.trim();
             const phone = document.getElementById('leadPhone').value.trim();
@@ -413,6 +448,44 @@
             renderLeads();
         }
 
+        function openEditLeadModal(id) {
+            const lead = data.leads.find(l => l.id === id);
+            if (!lead) return;
+
+            editingLeadId = id;
+            document.getElementById('editLeadName').value = lead.name;
+            document.getElementById('editLeadPhone').value = lead.phone;
+            document.getElementById('editLeadSource').value = lead.source;
+            document.getElementById('editLeadStatus').value = lead.status;
+            document.getElementById('editFollowupDate').value = lead.followupDate;
+            document.getElementById('editNextFollowupDate').value = lead.nextFollowupDate;
+            document.getElementById('editLeadNotes').value = lead.notes;
+
+            document.getElementById('editLeadModal').classList.add('show');
+        }
+
+        function closeEditLeadModal() {
+            document.getElementById('editLeadModal').classList.remove('show');
+            editingLeadId = null;
+        }
+
+        function saveEditLead() {
+            const lead = data.leads.find(l => l.id === editingLeadId);
+            if (!lead) return;
+
+            lead.name = document.getElementById('editLeadName').value.trim();
+            lead.phone = document.getElementById('editLeadPhone').value.trim();
+            lead.source = document.getElementById('editLeadSource').value;
+            lead.status = document.getElementById('editLeadStatus').value;
+            lead.followupDate = document.getElementById('editFollowupDate').value;
+            lead.nextFollowupDate = document.getElementById('editNextFollowupDate').value;
+            lead.notes = document.getElementById('editLeadNotes').value;
+
+            saveData();
+            renderLeads();
+            closeEditLeadModal();
+        }
+
         function renderLeads() {
             let html = '<table><tr><th>S.No</th><th>Name</th><th>Phone</th><th>Source</th><th>Status</th><th>Follow-up</th><th>Next Follow-up</th><th>Notes</th><th>Action</th></tr>';
             
@@ -429,8 +502,11 @@
                     <td><span class="badge ${statusClass}">${lead.status}</span></td>
                     <td>${lead.followupDate || '-'}</td>
                     <td>${lead.nextFollowupDate || '-'}</td>
-                    <td>${lead.notes || '-'}</td>
-                    <td><button class="btn btn-danger btn-small" onclick="deleteLead(${lead.id})">Delete</button></td>
+                    <td>${lead.notes ? lead.notes.substring(0, 20) + '...' : '-'}</td>
+                    <td>
+                        <button class="btn btn-warning btn-small" onclick="openEditLeadModal(${lead.id})">Edit</button>
+                        <button class="btn btn-danger btn-small" onclick="deleteLead(${lead.id})">Delete</button>
+                    </td>
                 </tr>`;
             });
             
@@ -441,6 +517,10 @@
         function deleteLead(id) {
             if (confirm('Delete this lead?')) {
                 data.leads = data.leads.filter(l => l.id !== id);
+                // Recalculate S.No
+                data.leads.forEach((lead, idx) => {
+                    lead.sno = idx + 1;
+                });
                 saveData();
                 renderLeads();
             }
@@ -459,6 +539,7 @@
 
             data.events.push({
                 id: Date.now(),
+                sno: data.events.length + 1,
                 name,
                 eventDate,
                 desc,
@@ -487,6 +568,7 @@
             if (event) {
                 event.attendees.push({
                     id: Date.now(),
+                    sno: event.attendees.length + 1,
                     name: attendeeName,
                     phone: attendeePhone,
                     tickets: parseInt(tickets)
@@ -500,14 +582,22 @@
             const event = data.events.find(e => e.id === eventId);
             if (event) {
                 event.attendees = event.attendees.filter(a => a.id !== attendeeId);
+                // Recalculate S.No
+                event.attendees.forEach((att, idx) => {
+                    att.sno = idx + 1;
+                });
                 saveData();
                 renderEvents();
             }
         }
 
         function deleteEvent(id) {
-            if (confirm('Delete this event?')) {
+            if (confirm('Delete this event and all attendees?')) {
                 data.events = data.events.filter(e => e.id !== id);
+                // Recalculate S.No
+                data.events.forEach((event, idx) => {
+                    event.sno = idx + 1;
+                });
                 saveData();
                 renderEvents();
             }
@@ -516,30 +606,33 @@
         function renderEvents() {
             let html = '';
             data.events.forEach(event => {
-                html += `<div class="card">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                        <h3>${event.name} (${event.eventDate})</h3>
+                const totalTickets = event.attendees.reduce((sum, a) => sum + a.tickets, 0);
+                
+                html += `<div class="event-card">
+                    <div class="event-header">
+                        <div>
+                            <h3>S.No: ${event.sno} | 📅 ${event.name}</h3>
+                            <p style="color: #666; margin: 5px 0 0;">Date: ${event.eventDate} | Total Attendees: ${event.attendees.length} | Total Tickets: ${totalTickets}</p>
+                            <p style="color: #999; font-size: 12px; margin: 5px 0 0;">Description: ${event.desc || 'N/A'}</p>
+                        </div>
                         <button class="btn btn-danger btn-small" onclick="deleteEvent(${event.id})">Delete Event</button>
                     </div>
-                    <p style="color: #666; margin-bottom: 15px;">${event.desc}</p>
                     
-                    <h4 style="margin-bottom: 10px;">Add Attendees</h4>
-                    <div class="event-attendees">
-                        <div class="attendee-row">
-                            <input type="text" id="attendeeName_${event.id}" placeholder="Attendee Name">
-                            <input type="text" id="attendeePhone_${event.id}" placeholder="Phone">
-                            <input type="number" id="tickets_${event.id}" placeholder="Tickets" value="1">
-                            <button class="btn" onclick="addAttendee(${event.id})">Add</button>
-                        </div>
+                    <h4 style="margin: 15px 0 10px; padding-top: 15px; border-top: 1px solid #ddd;">➕ Add Attendee</h4>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr auto; gap: 10px; margin-bottom: 15px;">
+                        <input type="text" id="attendeeName_${event.id}" placeholder="Full Name">
+                        <input type="text" id="attendeePhone_${event.id}" placeholder="Phone Number">
+                        <input type="number" id="tickets_${event.id}" placeholder="Tickets" value="1" min="1">
+                        <button class="btn" onclick="addAttendee(${event.id})">Add</button>
                     </div>
                     
                     ${event.attendees.length > 0 ? `
-                        <h4 style="margin: 20px 0 10px;">Attendees List</h4>
+                        <h4 style="margin-bottom: 10px;">📋 Attendees List</h4>
                         <table>
-                            <tr><th>S.No</th><th>Name</th><th>Phone</th><th>Tickets</th><th>Action</th></tr>
-                            ${event.attendees.map((att, idx) => `
+                            <tr><th>S.No</th><th>Name</th><th>Phone</th><th>Tickets Purchased</th><th>Action</th></tr>
+                            ${event.attendees.map((att) => `
                                 <tr>
-                                    <td>${idx + 1}</td>
+                                    <td>${att.sno}</td>
                                     <td>${att.name}</td>
                                     <td>${att.phone}</td>
                                     <td>${att.tickets}</td>
@@ -547,7 +640,7 @@
                                 </tr>
                             `).join('')}
                         </table>
-                    ` : ''}
+                    ` : '<p style="color: #999;">No attendees added yet</p>'}
                 </div>`;
             });
 
@@ -562,48 +655,60 @@
             document.getElementById('aiResponse').innerHTML = '';
 
             try {
+                const prompt = `You are a Herbalife business coach. Generate today's daily action plan for a distributor in India.
+
+Current Business Stats:
+- Total Leads: ${data.leads.length}
+- Hot Leads: ${data.leads.filter(l => l.status === 'Hot Lead').length}
+- Converted Customers: ${data.leads.filter(l => l.status === 'Converted').length}
+- Events Scheduled: ${data.events.length}
+
+Please create a detailed daily schedule with:
+
+🌅 MORNING (7:00 AM - 9:00 AM):
+- 3-4 specific, actionable tasks
+
+☀️ AFTERNOON (12:00 PM - 2:00 PM):
+- 3-4 specific, actionable tasks  
+
+🌙 EVENING (7:00 PM - 9:00 PM):
+- 2-3 specific, actionable tasks
+
+Make each task specific, measurable, and focused on lead generation, follow-ups, and team building. Include time allocation for each task.`;
+
                 const response = await fetch('https://api.anthropic.com/v1/messages', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 
+                        'Content-Type': 'application/json'
+                    },
                     body: JSON.stringify({
                         model: 'claude-sonnet-4-20250514',
-                        max_tokens: 1000,
+                        max_tokens: 1200,
                         messages: [{
                             role: 'user',
-                            content: `Generate today's daily tasks for a Herbalife distributor in India. Format as MORNING (7-9 AM), AFTERNOON (12-2 PM), EVENING (7-8 PM) with 3-4 specific actionable tasks each. Current stats: ${data.leads.length} leads, ${data.leads.filter(l => l.status === 'Hot Lead').length} hot leads, ${data.events.length} events. Be very specific.`
+                            content: prompt
                         }]
                     })
                 });
-                const result = await response.json();
-                if (result.content && result.content[0]) {
-                    const taskText = result.content[0].text;
-                    document.getElementById('aiResponse').innerHTML = '<div class="ai-response">' + taskText + '</div>';
-                    
-                    // Parse and save tasks
-                    data.aiTasks = [{ id: Date.now(), text: taskText, completed: false }];
-                    saveData();
-                    renderAITasks();
+
+                if (!response.ok) {
+                    throw new Error(`API Error: ${response.status}`);
                 }
-            } catch (e) {
-                document.getElementById('aiResponse').innerHTML = '<div class="ai-response">Error: ' + e.message + '</div>';
+
+                const result = await response.json();
+                
+                if (result.content && result.content[0] && result.content[0].text) {
+                    const taskText = result.content[0].text;
+                    document.getElementById('aiResponse').innerHTML = '<div class="ai-response">' + taskText.replace(/\n/g, '<br>') + '</div>';
+                } else {
+                    document.getElementById('aiResponse').innerHTML = '<div class="ai-response">No response from AI. Please try again.</div>';
+                }
+            } catch (error) {
+                document.getElementById('aiResponse').innerHTML = '<div class="ai-response" style="color: #dc2626;">❌ Error: ' + error.message + '\n\nMake sure you have internet connection and API is accessible.</div>';
             }
 
             btn.disabled = false;
-            btn.textContent = '✨ Generate Tasks';
-        }
-
-        function renderAITasks() {
-            let html = '';
-            if (data.aiTasks.length === 0) {
-                html = '<p style="color: #999;">No AI tasks generated. Click "Generate Tasks" button to start.</p>';
-            } else {
-                data.aiTasks.forEach(task => {
-                    html += `<div style="background: #f9fafb; padding: 15px; border-radius: 6px; margin-bottom: 10px; border-left: 4px solid #2563eb;">
-                        <pre style="white-space: pre-wrap; font-size: 13px; line-height: 1.6;">${task.text}</pre>
-                    </div>`;
-                });
-            }
-            document.getElementById('aiTasksList').innerHTML = html;
+            btn.textContent = '✨ Generate Daily Tasks';
         }
 
         // TO-DO LIST
@@ -620,7 +725,8 @@
                 id: Date.now(),
                 text,
                 priority,
-                completed: false
+                completed: false,
+                createdDate: new Date().toLocaleDateString()
             });
 
             document.getElementById('todoInput').value = '';
@@ -649,12 +755,12 @@
                 html = '<p style="color: #999;">No tasks in to-do list</p>';
             } else {
                 data.todos.forEach(todo => {
-                    const colorClass = todo.priority === 'High' ? 'style="color: #dc2626; font-weight: 600;"' : 
-                                      todo.priority === 'Medium' ? 'style="color: #f59e0b; font-weight: 600;"' : '';
+                    const colorClass = todo.priority === 'High' ? '#dc2626' : 
+                                      todo.priority === 'Medium' ? '#f59e0b' : '#6b7280';
                     html += `
                         <div class="todo-item ${todo.completed ? 'done' : ''}">
                             <input type="checkbox" id="todo_${todo.id}" ${todo.completed ? 'checked' : ''} onchange="toggleTodo(${todo.id})">
-                            <label for="todo_${todo.id}" ${colorClass}>${todo.text} <span style="font-size: 11px; color: #999;">[${todo.priority}]</span></label>
+                            <label for="todo_${todo.id}" style="color: ${colorClass}; font-weight: 600;">${todo.text} <span style="font-size: 11px; color: #999;">[${todo.priority}]</span></label>
                             <button class="btn btn-danger btn-small" onclick="deleteTodo(${todo.id})">Delete</button>
                         </div>
                     `;
@@ -672,7 +778,6 @@
 
             if (tab === 'leads') renderLeads();
             if (tab === 'events') renderEvents();
-            if (tab === 'tasks') renderAITasks();
             if (tab === 'todos') renderTodos();
         }
 
@@ -681,7 +786,8 @@
             document.getElementById('hotLeads').textContent = data.leads.filter(l => l.status === 'Hot Lead').length;
             document.getElementById('converted').textContent = data.leads.filter(l => l.status === 'Converted').length;
             document.getElementById('eventsCount').textContent = data.events.length;
-            document.getElementById('tasksCount').textContent = data.aiTasks.length;
+            const totalAttendees = data.events.reduce((sum, e) => sum + e.attendees.length, 0);
+            document.getElementById('attendeesCount').textContent = totalAttendees;
             document.getElementById('todoCount').textContent = data.todos.filter(t => !t.completed).length;
         }
 
@@ -701,6 +807,14 @@
                 showApp();
             }
         });
+
+        // Close modal on outside click
+        window.onclick = function(event) {
+            const modal = document.getElementById('editLeadModal');
+            if (event.target === modal) {
+                closeEditLeadModal();
+            }
+        }
     </script>
 
 </body>
