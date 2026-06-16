@@ -62,7 +62,6 @@
         .btn-warning { background: #f59e0b; }
         .btn-warning:hover { background: #d97706; }
         .btn-small { padding: 6px 12px; font-size: 12px; }
-        .btn-success { background: #16a34a; }
         
         table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 13px; }
         th { text-align: left; padding: 12px; border-bottom: 2px solid #e0e0e0; background: #f8f9fa; font-weight: 600; }
@@ -81,11 +80,14 @@
         .modal-content h2 { margin-bottom: 20px; }
         .modal-close { float: right; cursor: pointer; font-size: 24px; font-weight: bold; }
         
-        .event-card { background: #f9fafb; border: 1px solid #e0e0e0; border-radius: 8px; padding: 20px; margin-bottom: 20px; }
-        .event-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
-        .event-header h3 { margin: 0; }
-        
-        .attendee-item { background: white; padding: 12px; border-radius: 6px; margin-bottom: 10px; display: grid; grid-template-columns: 1fr 1fr 1fr auto auto; gap: 10px; align-items: center; border: 1px solid #e0e0e0; }
+        .event-card { background: #f9fafb; border: 2px solid #2563eb; border-radius: 8px; padding: 20px; margin-bottom: 20px; }
+        .event-header { background: #2563eb; color: white; padding: 15px; margin: -20px -20px 20px -20px; border-radius: 6px 6px 0 0; }
+        .event-header h3 { margin: 0 0 5px; }
+        .event-header p { margin: 0; font-size: 12px; opacity: 0.9; }
+        .event-info { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin-bottom: 20px; padding-bottom: 20px; border-bottom: 1px solid #e0e0e0; }
+        .event-info-item { }
+        .event-info-label { font-size: 11px; color: #666; font-weight: 600; margin-bottom: 5px; }
+        .event-info-value { font-size: 16px; font-weight: 700; color: #2563eb; }
         
         .ai-box { background: linear-gradient(135deg, #f0f9ff 0%, #f3e8ff 100%); border: 1px solid #bfdbfe; border-radius: 8px; padding: 20px; margin-bottom: 20px; }
         .ai-response { background: white; padding: 15px; border-radius: 6px; margin-top: 15px; border-left: 4px solid #2563eb; max-height: 500px; overflow-y: auto; white-space: pre-wrap; line-height: 1.5; font-size: 12px; }
@@ -97,8 +99,8 @@
         
         @media (max-width: 768px) {
             .form-row { grid-template-columns: 1fr; }
-            .attendee-item { grid-template-columns: 1fr; }
-            .event-header { flex-direction: column; align-items: flex-start; gap: 10px; }
+            .event-info { grid-template-columns: 1fr; }
+            .header { flex-direction: column; align-items: flex-start; gap: 10px; }
         }
     </style>
 </head>
@@ -176,8 +178,8 @@
                             <div class="metric-value" id="eventsCount">0</div>
                         </div>
                         <div class="metric">
-                            <div class="metric-label">Total Attendees</div>
-                            <div class="metric-value" id="attendeesCount">0</div>
+                            <div class="metric-label">Total Tickets Sold</div>
+                            <div class="metric-value" id="totalTickets">0</div>
                         </div>
                         <div class="metric">
                             <div class="metric-label">To-Do Tasks</div>
@@ -231,10 +233,14 @@
                 <!-- EVENTS -->
                 <div class="tab-content" id="events">
                     <div class="card">
-                        <h2>➕ Create New Event</h2>
+                        <h2>🎟️ Create New Event</h2>
                         <div class="form-row">
                             <input type="text" id="eventName" placeholder="Event Name *" required>
                             <input type="date" id="eventDate" required>
+                        </div>
+                        <div class="form-row">
+                            <input type="text" id="eventLocation" placeholder="Event Location">
+                            <input type="time" id="eventTime" placeholder="Event Time">
                         </div>
                         <textarea id="eventDesc" placeholder="Event Description" style="width: 100%; margin-bottom: 12px;"></textarea>
                         <button class="btn" onclick="addEvent()">+ Create Event</button>
@@ -517,7 +523,6 @@
         function deleteLead(id) {
             if (confirm('Delete this lead?')) {
                 data.leads = data.leads.filter(l => l.id !== id);
-                // Recalculate S.No
                 data.leads.forEach((lead, idx) => {
                     lead.sno = idx + 1;
                 });
@@ -526,14 +531,16 @@
             }
         }
 
-        // EVENTS
+        // EVENTS - ACCORDING TO YOUR TEMPLATE
         function addEvent() {
             const name = document.getElementById('eventName').value.trim();
             const eventDate = document.getElementById('eventDate').value;
+            const location = document.getElementById('eventLocation').value.trim();
+            const time = document.getElementById('eventTime').value;
             const desc = document.getElementById('eventDesc').value;
 
             if (!name || !eventDate) {
-                alert('Fill required fields');
+                alert('Fill Event Name and Date');
                 return;
             }
 
@@ -542,12 +549,16 @@
                 sno: data.events.length + 1,
                 name,
                 eventDate,
+                location,
+                time,
                 desc,
                 attendees: []
             });
 
             document.getElementById('eventName').value = '';
             document.getElementById('eventDate').value = '';
+            document.getElementById('eventLocation').value = '';
+            document.getElementById('eventTime').value = '';
             document.getElementById('eventDesc').value = '';
 
             saveData();
@@ -571,7 +582,7 @@
                     sno: event.attendees.length + 1,
                     name: attendeeName,
                     phone: attendeePhone,
-                    tickets: parseInt(tickets)
+                    ticketsPurchased: parseInt(tickets)
                 });
                 saveData();
                 renderEvents();
@@ -582,7 +593,6 @@
             const event = data.events.find(e => e.id === eventId);
             if (event) {
                 event.attendees = event.attendees.filter(a => a.id !== attendeeId);
-                // Recalculate S.No
                 event.attendees.forEach((att, idx) => {
                     att.sno = idx + 1;
                 });
@@ -594,7 +604,6 @@
         function deleteEvent(id) {
             if (confirm('Delete this event and all attendees?')) {
                 data.events = data.events.filter(e => e.id !== id);
-                // Recalculate S.No
                 data.events.forEach((event, idx) => {
                     event.sno = idx + 1;
                 });
@@ -606,45 +615,66 @@
         function renderEvents() {
             let html = '';
             data.events.forEach(event => {
-                const totalTickets = event.attendees.reduce((sum, a) => sum + a.tickets, 0);
+                const totalTickets = event.attendees.reduce((sum, a) => sum + a.ticketsPurchased, 0);
                 
                 html += `<div class="event-card">
                     <div class="event-header">
-                        <div>
-                            <h3>S.No: ${event.sno} | 📅 ${event.name}</h3>
-                            <p style="color: #666; margin: 5px 0 0;">Date: ${event.eventDate} | Total Attendees: ${event.attendees.length} | Total Tickets: ${totalTickets}</p>
-                            <p style="color: #999; font-size: 12px; margin: 5px 0 0;">Description: ${event.desc || 'N/A'}</p>
-                        </div>
-                        <button class="btn btn-danger btn-small" onclick="deleteEvent(${event.id})">Delete Event</button>
+                        <h3>S.No: ${event.sno} - ${event.name}</h3>
+                        <p>📅 ${event.eventDate}${event.time ? ' ⏰ ' + event.time : ''}${event.location ? ' 📍 ' + event.location : ''}</p>
                     </div>
                     
-                    <h4 style="margin: 15px 0 10px; padding-top: 15px; border-top: 1px solid #ddd;">➕ Add Attendee</h4>
-                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr auto; gap: 10px; margin-bottom: 15px;">
+                    <div class="event-info">
+                        <div class="event-info-item">
+                            <div class="event-info-label">Total Attendees</div>
+                            <div class="event-info-value">${event.attendees.length}</div>
+                        </div>
+                        <div class="event-info-item">
+                            <div class="event-info-label">Total Tickets Sold</div>
+                            <div class="event-info-value">${totalTickets}</div>
+                        </div>
+                        <div class="event-info-item">
+                            <div class="event-info-label">Description</div>
+                            <div class="event-info-value" style="font-size: 12px;">${event.desc || 'N/A'}</div>
+                        </div>
+                    </div>
+                    
+                    <h4 style="margin: 15px 0 12px; padding-bottom: 10px; border-bottom: 2px solid #2563eb;">➕ Add Attendee</h4>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; margin-bottom: 20px;">
                         <input type="text" id="attendeeName_${event.id}" placeholder="Full Name">
-                        <input type="text" id="attendeePhone_${event.id}" placeholder="Phone Number">
-                        <input type="number" id="tickets_${event.id}" placeholder="Tickets" value="1" min="1">
+                        <input type="text" id="attendeePhone_${event.id}" placeholder="Phone No.">
+                        <input type="number" id="tickets_${event.id}" placeholder="Tickets Purchased" value="1" min="1">
                         <button class="btn" onclick="addAttendee(${event.id})">Add</button>
                     </div>
                     
                     ${event.attendees.length > 0 ? `
-                        <h4 style="margin-bottom: 10px;">📋 Attendees List</h4>
+                        <h4 style="margin-bottom: 12px; padding-bottom: 10px; border-bottom: 2px solid #2563eb;">📊 Event Ticket Management</h4>
                         <table>
-                            <tr><th>S.No</th><th>Name</th><th>Phone</th><th>Tickets Purchased</th><th>Action</th></tr>
+                            <tr>
+                                <th>S.No.</th>
+                                <th>Name</th>
+                                <th>Phone No.</th>
+                                <th>Tickets Purchased</th>
+                                <th>Action</th>
+                            </tr>
                             ${event.attendees.map((att) => `
                                 <tr>
-                                    <td>${att.sno}</td>
+                                    <td><strong>${att.sno}</strong></td>
                                     <td>${att.name}</td>
                                     <td>${att.phone}</td>
-                                    <td>${att.tickets}</td>
+                                    <td>${att.ticketsPurchased}</td>
                                     <td><button class="btn btn-danger btn-small" onclick="deleteAttendee(${event.id}, ${att.id})">Remove</button></td>
                                 </tr>
                             `).join('')}
                         </table>
-                    ` : '<p style="color: #999;">No attendees added yet</p>'}
+                    ` : '<p style="color: #999; margin-top: 10px;">No attendees added yet</p>'}
+                    
+                    <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #e0e0e0;">
+                        <button class="btn btn-danger" onclick="deleteEvent(${event.id})">🗑️ Delete Event</button>
+                    </div>
                 </div>`;
             });
 
-            document.getElementById('eventsContainer').innerHTML = html || '<p style="color: #999;">No events created yet</p>';
+            document.getElementById('eventsContainer').innerHTML = html || '<div style="background: white; padding: 20px; border-radius: 8px; text-align: center; color: #999;">No events created yet. Create your first event above!</div>';
         }
 
         // AI TASKS
@@ -662,19 +692,20 @@ Current Business Stats:
 - Hot Leads: ${data.leads.filter(l => l.status === 'Hot Lead').length}
 - Converted Customers: ${data.leads.filter(l => l.status === 'Converted').length}
 - Events Scheduled: ${data.events.length}
+- Total Attendees: ${data.events.reduce((sum, e) => sum + e.attendees.length, 0)}
 
 Please create a detailed daily schedule with:
 
 🌅 MORNING (7:00 AM - 9:00 AM):
-- 3-4 specific, actionable tasks
+- 3-4 specific, actionable tasks with time allocation
 
 ☀️ AFTERNOON (12:00 PM - 2:00 PM):
-- 3-4 specific, actionable tasks  
+- 3-4 specific, actionable tasks with time allocation
 
 🌙 EVENING (7:00 PM - 9:00 PM):
-- 2-3 specific, actionable tasks
+- 2-3 specific, actionable tasks with time allocation
 
-Make each task specific, measurable, and focused on lead generation, follow-ups, and team building. Include time allocation for each task.`;
+Make each task specific, measurable, and focused on lead generation, follow-ups, event management, and team building.`;
 
                 const response = await fetch('https://api.anthropic.com/v1/messages', {
                     method: 'POST',
@@ -704,7 +735,7 @@ Make each task specific, measurable, and focused on lead generation, follow-ups,
                     document.getElementById('aiResponse').innerHTML = '<div class="ai-response">No response from AI. Please try again.</div>';
                 }
             } catch (error) {
-                document.getElementById('aiResponse').innerHTML = '<div class="ai-response" style="color: #dc2626;">❌ Error: ' + error.message + '\n\nMake sure you have internet connection and API is accessible.</div>';
+                document.getElementById('aiResponse').innerHTML = '<div class="ai-response" style="color: #dc2626;">❌ Error: ' + error.message + '\n\nMake sure you have internet connection.</div>';
             }
 
             btn.disabled = false;
@@ -786,8 +817,8 @@ Make each task specific, measurable, and focused on lead generation, follow-ups,
             document.getElementById('hotLeads').textContent = data.leads.filter(l => l.status === 'Hot Lead').length;
             document.getElementById('converted').textContent = data.leads.filter(l => l.status === 'Converted').length;
             document.getElementById('eventsCount').textContent = data.events.length;
-            const totalAttendees = data.events.reduce((sum, e) => sum + e.attendees.length, 0);
-            document.getElementById('attendeesCount').textContent = totalAttendees;
+            const totalTickets = data.events.reduce((sum, e) => sum + e.attendees.reduce((s, a) => s + a.ticketsPurchased, 0), 0);
+            document.getElementById('totalTickets').textContent = totalTickets;
             document.getElementById('todoCount').textContent = data.todos.filter(t => !t.completed).length;
         }
 
@@ -808,7 +839,6 @@ Make each task specific, measurable, and focused on lead generation, follow-ups,
             }
         });
 
-        // Close modal on outside click
         window.onclick = function(event) {
             const modal = document.getElementById('editLeadModal');
             if (event.target === modal) {
