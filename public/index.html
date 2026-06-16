@@ -251,11 +251,40 @@
 
                 <!-- AI TASKS -->
                 <div class="tab-content" id="tasks">
-                    <div class="ai-box">
-                        <h2>🤖 AI Daily Task Generator</h2>
-                        <p style="font-size: 13px; color: #555; margin-bottom: 15px;">Generate personalized daily tasks based on your business</p>
-                        <button class="btn" id="aiBtn" onclick="generateAITasks()">✨ Generate Daily Tasks</button>
-                        <div id="aiResponse"></div>
+                    <div class="card">
+                        <h2>🤖 Daily Task Generator</h2>
+                        <p style="font-size: 13px; color: #666; margin-bottom: 15px;">Select your daily schedule and get personalized task recommendations</p>
+                        
+                        <div class="form-row">
+                            <select id="taskTemplate" onchange="app.generateTasksFromTemplate()">
+                                <option>Select a Daily Template</option>
+                                <option>Standard Herbalife Day</option>
+                                <option>Event Day</option>
+                                <option>Team Building Day</option>
+                                <option>Follow-up Day</option>
+                                <option>New Customer Day</option>
+                            </select>
+                        </div>
+                        
+                        <div id="tasksDisplay"></div>
+                    </div>
+
+                    <div class="card">
+                        <h2>💡 Or Create Your Own Tasks</h2>
+                        <div class="form-row">
+                            <input type="text" id="customTask" placeholder="Enter your task">
+                            <select id="taskTime">
+                                <option>Morning (7-9 AM)</option>
+                                <option>Afternoon (12-2 PM)</option>
+                                <option>Evening (7-8 PM)</option>
+                            </select>
+                        </div>
+                        <button class="btn" onclick="app.addCustomTask()">+ Add Task</button>
+                    </div>
+
+                    <div class="card">
+                        <h2>📋 Today's Tasks</h2>
+                        <div id="tasksList"></div>
                     </div>
                 </div>
 
@@ -321,10 +350,747 @@
     </div>
 
     <script>
-        let user = null;
-        let data = { leads: [], events: [], todos: [] };
-        let editingLeadId = null;
+       const taskTemplates = {
+            'Standard Herbalife Day': {
+                morning: [
+                    '7:00-7:30 AM: Drink Herbalife shake & review today\'s priorities',
+                    '7:30-8:30 AM: Create 10 WhatsApp messages about products/business',
+                    '8:30-9:00 AM: Send messages and follow up with 5 previous leads',
+                    '9:00-9:30 AM: Check messages and respond to inquiries'
+                ],
+                afternoon: [
+                    '12:00-12:30 PM: Lunch break with Herbalife nutrition drink',
+                    '12:30-1:30 PM: Have 2-3 real conversations with hot leads',
+                    '1:30-2:00 PM: Ask for referrals from conversations',
+                    '2:00-2:30 PM: Update leads database with new information'
+                ],
+                evening: [
+                    '7:00-7:15 PM: Post 1 Instagram/Facebook story with product benefits',
+                    '7:15-8:00 PM: Log today\'s activity in tracker',
+                    '8:00-8:30 PM: Plan tomorrow\'s tasks & set goals'
+                ]
+            },
+            'Event Day': {
+                morning: [
+                    '7:00-8:00 AM: Prepare event materials and promotional content',
+                    '8:00-9:00 AM: Send event reminder to all registered attendees',
+                    '9:00-10:00 AM: Coordinate with team members for event setup'
+                ],
+                afternoon: [
+                    '12:00-1:00 PM: Final event preparations and material check',
+                    '1:00-3:00 PM: Conduct the event - welcome attendees',
+                    '3:00-4:00 PM: Network with attendees and collect contact info'
+                ],
+                evening: [
+                    '7:00-7:30 PM: Thank attendees with follow-up messages',
+                    '7:30-8:30 PM: Update attendee list in event tracker',
+                    '8:30-9:00 PM: Plan follow-up calls for this week'
+                ]
+            },
+            'Team Building Day': {
+                morning: [
+                    '7:00-8:00 AM: Prepare team meeting agenda and materials',
+                    '8:00-9:00 AM: Call top 3 team members for 1-on-1 check-ins',
+                    '9:00-10:00 AM: Discuss goals and celebrate recent wins'
+                ],
+                afternoon: [
+                    '12:00-1:00 PM: Team lunch or virtual meeting',
+                    '1:00-2:00 PM: Training session on new products/strategies',
+                    '2:00-3:00 PM: Review team performance and targets'
+                ],
+                evening: [
+                    '7:00-7:30 PM: Recognize and motivate team members',
+                    '7:30-8:30 PM: Plan recruitment activities for next week',
+                    '8:30-9:00 PM: Document team updates in your records'
+                ]
+            },
+            'Follow-up Day': {
+                morning: [
+                    '7:00-8:00 AM: Review all pending follow-ups from leads database',
+                    '8:00-9:00 AM: Call 5 warm leads who haven\'t responded',
+                    '9:00-10:00 AM: Send personalized messages to hot leads'
+                ],
+                afternoon: [
+                    '12:00-1:00 PM: Check who opened your previous messages',
+                    '1:00-2:00 PM: Follow up with people from last week\'s events',
+                    '2:00-3:00 PM: Schedule next meetings/calls'
+                ],
+                evening: [
+                    '7:00-7:30 PM: Send thank you messages to converted customers',
+                    '7:30-8:30 PM: Update follow-up dates in your tracker',
+                    '8:30-9:00 PM: Reflect on conversations and note patterns'
+                ]
+            },
+            'New Customer Day': {
+                morning: [
+                    '7:00-8:00 AM: Review last week\'s converted customers',
+                    '8:00-9:00 AM: Send welcome messages to new customers',
+                    '9:00-10:00 AM: Share customer benefits and usage guide'
+                ],
+                afternoon: [
+                    '12:00-1:00 PM: Call new customers for feedback',
+                    '1:00-2:00 PM: Understand their goals and preferences',
+                    '2:00-3:00 PM: Provide personalized product recommendations'
+                ],
+                evening: [
+                    '7:00-7:30 PM: Create reorder reminder messages',
+                    '7:30-8:30 PM: Ask for testimonials or referrals',
+                    '8:30-9:00 PM: Plan retention strategy for this month'
+                ]
+            }
+        };
 
+        let app = {
+            user: null,
+            data: { leads: [], events: [], todos: [], tasks: [] },
+            editingLeadId: null,
+
+            // AUTHENTICATION
+            handleSignIn(e) {
+                e.preventDefault();
+                const email = document.getElementById('signinEmail').value.trim();
+                const password = document.getElementById('signinPassword').value;
+                
+                if (!email || !password) {
+                    alert('Fill all fields');
+                    return;
+                }
+
+                const uid = btoa(email + password);
+                this.user = { email, password, uid };
+                
+                localStorage.setItem('currentUser', JSON.stringify(this.user));
+                this.loadData();
+                this.showApp();
+            },
+
+            handleSignUp(e) {
+                e.preventDefault();
+                const email = document.getElementById('signupEmail').value.trim();
+                const password = document.getElementById('signupPassword').value;
+                const confirm = document.getElementById('signupConfirm').value;
+                
+                if (!email || !password || !confirm) {
+                    alert('Fill all fields');
+                    return;
+                }
+
+                if (password !== confirm) {
+                    alert('Passwords do not match');
+                    return;
+                }
+
+                if (password.length < 6) {
+                    alert('Password must be at least 6 characters');
+                    return;
+                }
+
+                const uid = btoa(email + password);
+                this.user = { email, password, uid };
+                
+                localStorage.setItem('currentUser', JSON.stringify(this.user));
+                localStorage.setItem('data_' + uid, JSON.stringify(this.data));
+                this.showApp();
+            },
+
+            handleLogout() {
+                localStorage.removeItem('currentUser');
+                this.user = null;
+                this.data = { leads: [], events: [], todos: [], tasks: [] };
+                document.getElementById('authPage').classList.add('show');
+                document.getElementById('appPage').classList.remove('show');
+                document.getElementById('signinEmail').value = '';
+                document.getElementById('signinPassword').value = '';
+            },
+
+            switchAuthTab(tab) {
+                document.querySelectorAll('.auth-form').forEach(f => f.classList.remove('show'));
+                document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
+                
+                if (tab === 'signin') {
+                    document.getElementById('signinForm').classList.add('show');
+                    document.querySelector('[onclick="app.switchAuthTab(\'signin\')"]').classList.add('active');
+                } else {
+                    document.getElementById('signupForm').classList.add('show');
+                    document.querySelector('[onclick="app.switchAuthTab(\'signup\')"]').classList.add('active');
+                }
+            },
+
+            // DATA
+            loadData() {
+                if (!this.user) return;
+                const saved = localStorage.getItem('data_' + this.user.uid);
+                if (saved) {
+                    try {
+                        this.data = JSON.parse(saved);
+                    } catch (e) {}
+                }
+            },
+
+            saveData() {
+                if (!this.user) return;
+                localStorage.setItem('data_' + this.user.uid, JSON.stringify(this.data));
+                this.updateDashboard();
+            },
+
+            // LEADS
+            addLead() {
+                const name = document.getElementById('leadName').value.trim();
+                const phone = document.getElementById('leadPhone').value.trim();
+                const source = document.getElementById('leadSource').value;
+                const status = document.getElementById('leadStatus').value;
+                const followupDate = document.getElementById('followupDate').value;
+                const nextFollowupDate = document.getElementById('nextFollowupDate').value;
+                const notes = document.getElementById('leadNotes').value;
+
+                if (!name || !phone || source === 'Select Source *') {
+                    alert('Fill required fields');
+                    return;
+                }
+
+                const sno = this.data.leads.length + 1;
+                this.data.leads.push({
+                    id: Date.now(),
+                    sno,
+                    name, phone, source, status,
+                    followupDate, nextFollowupDate, notes,
+                    createdDate: new Date().toLocaleDateString()
+                });
+
+                document.getElementById('leadName').value = '';
+                document.getElementById('leadPhone').value = '';
+                document.getElementById('leadSource').value = 'Select Source *';
+                document.getElementById('leadStatus').value = 'New';
+                document.getElementById('followupDate').value = '';
+                document.getElementById('nextFollowupDate').value = '';
+                document.getElementById('leadNotes').value = '';
+
+                this.saveData();
+                this.renderLeads();
+            },
+
+            openEditLeadModal(id) {
+                const lead = this.data.leads.find(l => l.id === id);
+                if (!lead) return;
+
+                this.editingLeadId = id;
+                document.getElementById('editLeadName').value = lead.name;
+                document.getElementById('editLeadPhone').value = lead.phone;
+                document.getElementById('editLeadSource').value = lead.source;
+                document.getElementById('editLeadStatus').value = lead.status;
+                document.getElementById('editFollowupDate').value = lead.followupDate;
+                document.getElementById('editNextFollowupDate').value = lead.nextFollowupDate;
+                document.getElementById('editLeadNotes').value = lead.notes;
+                document.getElementById('editLeadModal').classList.add('show');
+            },
+
+            closeEditLeadModal() {
+                document.getElementById('editLeadModal').classList.remove('show');
+                this.editingLeadId = null;
+            },
+
+            saveEditLead() {
+                const lead = this.data.leads.find(l => l.id === this.editingLeadId);
+                if (!lead) return;
+
+                lead.name = document.getElementById('editLeadName').value.trim();
+                lead.phone = document.getElementById('editLeadPhone').value.trim();
+                lead.source = document.getElementById('editLeadSource').value;
+                lead.status = document.getElementById('editLeadStatus').value;
+                lead.followupDate = document.getElementById('editFollowupDate').value;
+                lead.nextFollowupDate = document.getElementById('editNextFollowupDate').value;
+                lead.notes = document.getElementById('editLeadNotes').value;
+
+                this.saveData();
+                this.renderLeads();
+                this.closeEditLeadModal();
+            },
+
+            renderLeads() {
+                let html = '<table><tr><th>S.No</th><th>Name</th><th>Phone</th><th>Source</th><th>Status</th><th>Follow-up</th><th>Next Follow-up</th><th>Notes</th><th>Action</th></tr>';
+                
+                this.data.leads.forEach(lead => {
+                    const statusClass = lead.status === 'Hot Lead' ? 'badge-hot' : 
+                                       lead.status === 'Converted' ? 'badge-converted' : 
+                                       lead.status === 'Pending Follow-up' ? 'badge-pending' : 'badge-new';
+                    
+                    html += `<tr>
+                        <td>${lead.sno}</td>
+                        <td>${lead.name}</td>
+                        <td>${lead.phone}</td>
+                        <td>${lead.source}</td>
+                        <td><span class="badge ${statusClass}">${lead.status}</span></td>
+                        <td>${lead.followupDate || '-'}</td>
+                        <td>${lead.nextFollowupDate || '-'}</td>
+                        <td>${lead.notes ? lead.notes.substring(0, 20) + '...' : '-'}</td>
+                        <td>
+                            <button class="btn btn-warning btn-small" onclick="app.openEditLeadModal(${lead.id})">Edit</button>
+                            <button class="btn btn-danger btn-small" onclick="app.deleteLead(${lead.id})">Delete</button>
+                        </td>
+                    </tr>`;
+                });
+                
+                html += '</table>';
+                document.getElementById('leadsTable').innerHTML = html || '<p style="color: #999;">No leads added yet</p>';
+            },
+
+            deleteLead(id) {
+                if (confirm('Delete this lead?')) {
+                    this.data.leads = this.data.leads.filter(l => l.id !== id);
+                    this.data.leads.forEach((lead, idx) => {
+                        lead.sno = idx + 1;
+                    });
+                    this.saveData();
+                    this.renderLeads();
+                }
+            },
+
+            // EVENTS
+            addEvent() {
+                const name = document.getElementById('eventName').value.trim();
+                const eventDate = document.getElementById('eventDate').value;
+                const location = document.getElementById('eventLocation').value.trim();
+                const time = document.getElementById('eventTime').value;
+                const desc = document.getElementById('eventDesc').value;
+
+                if (!name || !eventDate) {
+                    alert('Fill Event Name and Date');
+                    return;
+                }
+
+                this.data.events.push({
+                    id: Date.now(),
+                    sno: this.data.events.length + 1,
+                    name, eventDate, location, time, desc,
+                    attendees: []
+                });
+
+                document.getElementById('eventName').value = '';
+                document.getElementById('eventDate').value = '';
+                document.getElementById('eventLocation').value = '';
+                document.getElementById('eventTime').value = '';
+                document.getElementById('eventDesc').value = '';
+
+                this.saveData();
+                this.renderEvents();
+            },
+
+            addAttendee(eventId) {
+                const attendeeName = document.getElementById('attendeeName_' + eventId).value.trim();
+                const attendeePhone = document.getElementById('attendeePhone_' + eventId).value.trim();
+                const tickets = document.getElementById('tickets_' + eventId).value;
+
+                if (!attendeeName || !attendeePhone || !tickets) {
+                    alert('Fill all attendee fields');
+                    return;
+                }
+
+                const event = this.data.events.find(e => e.id === eventId);
+                if (event) {
+                    event.attendees.push({
+                        id: Date.now(),
+                        sno: event.attendees.length + 1,
+                        name: attendeeName,
+                        phone: attendeePhone,
+                        ticketsPurchased: parseInt(tickets)
+                    });
+                    this.saveData();
+                    this.renderEvents();
+                }
+            },
+
+            deleteAttendee(eventId, attendeeId) {
+                const event = this.data.events.find(e => e.id === eventId);
+                if (event) {
+                    event.attendees = event.attendees.filter(a => a.id !== attendeeId);
+                    event.attendees.forEach((att, idx) => {
+                        att.sno = idx + 1;
+                    });
+                    this.saveData();
+                    this.renderEvents();
+                }
+            },
+
+            deleteEvent(id) {
+                if (confirm('Delete this event and all attendees?')) {
+                    this.data.events = this.data.events.filter(e => e.id !== id);
+                    this.data.events.forEach((event, idx) => {
+                        event.sno = idx + 1;
+                    });
+                    this.saveData();
+                    this.renderEvents();
+                }
+            },
+
+            renderEvents() {
+                let html = '';
+                this.data.events.forEach(event => {
+                    const totalTickets = event.attendees.reduce((sum, a) => sum + a.ticketsPurchased, 0);
+                    
+                    html += `<div class="event-card">
+                        <div class="event-header">
+                            <h3>S.No: ${event.sno} - ${event.name}</h3>
+                            <p>📅 ${event.eventDate}${event.time ? ' ⏰ ' + event.time : ''}${event.location ? ' 📍 ' + event.location : ''}</p>
+                        </div>
+                        
+                        <div class="event-info">
+                            <div class="event-info-item">
+                                <div class="event-info-label">Total Attendees</div>
+                                <div class="event-info-value">${event.attendees.length}</div>
+                            </div>
+                            <div class="event-info-item">
+                                <div class="event-info-label">Total Tickets Sold</div>
+                                <div class="event-info-value">${totalTickets}</div>
+                            </div>
+                            <div class="event-info-item">
+                                <div class="event-info-label">Description</div>
+                                <div class="event-info-value" style="font-size: 12px;">${event.desc || 'N/A'}</div>
+                            </div>
+                        </div>
+                        
+                        <h4 style="margin: 15px 0 12px; padding-bottom: 10px; border-bottom: 2px solid #2563eb;">➕ Add Attendee</h4>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; margin-bottom: 20px;">
+                            <input type="text" id="attendeeName_${event.id}" placeholder="Full Name">
+                            <input type="text" id="attendeePhone_${event.id}" placeholder="Phone No.">
+                            <input type="number" id="tickets_${event.id}" placeholder="Tickets Purchased" value="1" min="1">
+                            <button class="btn" onclick="app.addAttendee(${event.id})">Add</button>
+                        </div>
+                        
+                        ${event.attendees.length > 0 ? `
+                            <h4 style="margin-bottom: 12px; padding-bottom: 10px; border-bottom: 2px solid #2563eb;">📊 Event Ticket Management</h4>
+                            <table>
+                                <tr>
+                                    <th>S.No.</th>
+                                    <th>Name</th>
+                                    <th>Phone No.</th>
+                                    <th>Tickets Purchased</th>
+                                    <th>Action</th>
+                                </tr>
+                                ${event.attendees.map((att) => `
+                                    <tr>
+                                        <td><strong>${att.sno}</strong></td>
+                                        <td>${att.name}</td>
+                                        <td>${att.phone}</td>
+                                        <td>${att.ticketsPurchased}</td>
+                                        <td><button class="btn btn-danger btn-small" onclick="app.deleteAttendee(${event.id}, ${att.id})">Remove</button></td>
+                                    </tr>
+                                `).join('')}
+                            </table>
+                        ` : '<p style="color: #999; margin-top: 10px;">No attendees added yet</p>'}
+                        
+                        <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #e0e0e0;">
+                            <button class="btn btn-danger" onclick="app.deleteEvent(${event.id})">🗑️ Delete Event</button>
+                        </div>
+                    </div>`;
+                });
+
+                document.getElementById('eventsContainer').innerHTML = html || '<div style="background: white; padding: 20px; border-radius: 8px; text-align: center; color: #999;">No events created yet</div>';
+            },
+
+            // TASKS
+            generateTasksFromTemplate() {
+                const template = document.getElementById('taskTemplate').value;
+                if (!template || template === 'Select a Daily Template') {
+                    document.getElementById('tasksDisplay').innerHTML = '';
+                    return;
+                }
+
+                const tasks = taskTemplates[template];
+                let html = `
+                    <div style="background: linear-gradient(135deg, #f0f9ff 0%, #f3e8ff 100%); border: 1px solid #bfdbfe; border-radius: 8px; padding: 20px; margin: 15px 0;">
+                        <h3 style="color: #2563eb; margin-bottom: 15px;">📅 ${template}</h3>
+                        
+                        <div style="margin-bottom: 20px;">
+                            <h4 style="color: #1e40af; margin-bottom: 10px;">🌅 MORNING (7:00 AM - 9:00 AM)</h4>
+                            ${tasks.morning.map(task => `<div style="background: white; padding: 10px; margin-bottom: 8px; border-left: 4px solid #2563eb; border-radius: 4px;">${task}</div>`).join('')}
+                        </div>
+
+                        <div style="margin-bottom: 20px;">
+                            <h4 style="color: #1e40af; margin-bottom: 10px;">☀️ AFTERNOON (12:00 PM - 2:00 PM)</h4>
+                            ${tasks.afternoon.map(task => `<div style="background: white; padding: 10px; margin-bottom: 8px; border-left: 4px solid #f59e0b; border-radius: 4px;">${task}</div>`).join('')}
+                        </div>
+
+                        <div>
+                            <h4 style="color: #1e40af; margin-bottom: 10px;">🌙 EVENING (7:00 PM - 9:00 PM)</h4>
+                            ${tasks.evening.map(task => `<div style="background: white; padding: 10px; margin-bottom: 8px; border-left: 4px solid #7c3aed; border-radius: 4px;">${task}</div>`).join('')}
+                        </div>
+
+                        <button class="btn" style="margin-top: 15px;" onclick="app.addTemplateTasksToList('${template}')">✅ Add These Tasks to Today's List</button>
+                    </div>
+                `;
+                document.getElementById('tasksDisplay').innerHTML = html;
+            },
+
+            addTemplateTasksToList(templateName) {
+                const tasks = taskTemplates[templateName];
+                const allTasks = [...tasks.morning, ...tasks.afternoon, ...tasks.evening];
+                
+                allTasks.forEach(taskText => {
+                    this.data.tasks.push({
+                        id: Date.now() + Math.random(),
+                        text: taskText,
+                        completed: false
+                    });
+                });
+
+                this.saveData();
+                this.renderTasksList();
+                alert('✅ All ' + allTasks.length + ' tasks added!');
+            },
+
+            addCustomTask() {
+                const text = document.getElementById('customTask').value.trim();
+                const time = document.getElementById('taskTime').value;
+
+                if (!text) {
+                    alert('Enter a task');
+                    return;
+                }
+
+                this.data.tasks.push({
+                    id: Date.now(),
+                    text: `[${time}] ${text}`,
+                    completed: false
+                });
+
+                document.getElementById('customTask').value = '';
+                this.saveData();
+                this.renderTasksList();
+            },
+
+            toggleTask(id) {
+                const task = this.data.tasks.find(t => t.id === id);
+                if (task) {
+                    task.completed = !task.completed;
+                    this.saveData();
+                    this.renderTasksList();
+                }
+            },
+
+            deleteTask(id) {
+                this.data.tasks = this.data.tasks.filter(t => t.id !== id);
+                this.saveData();
+                this.renderTasksList();
+            },
+
+            clearAllTasks() {
+                if (confirm('Clear all tasks?')) {
+                    this.data.tasks = [];
+                    this.saveData();
+                    this.renderTasksList();
+                }
+            },
+
+            renderTasksList() {
+                let html = '';
+                const completedCount = this.data.tasks.filter(t => t.completed).length;
+                const totalCount = this.data.tasks.length;
+
+                if (totalCount === 0) {
+                    html = '<p style="color: #999; text-align: center; padding: 20px;">Select a template or add custom tasks above</p>';
+                } else {
+                    html = `
+                        <div style="background: #f0f9ff; padding: 15px; border-radius: 6px; margin-bottom: 15px; text-align: center;">
+                            <h3 style="color: #2563eb; margin: 0;">Progress: ${completedCount}/${totalCount} Tasks Completed (${Math.round((completedCount/totalCount)*100)}%)</h3>
+                        </div>
+                    `;
+
+                    this.data.tasks.forEach(task => {
+                        html += `
+                            <div class="todo-item ${task.completed ? 'done' : ''}" style="margin-bottom: 10px;">
+                                <input type="checkbox" id="task_${task.id}" ${task.completed ? 'checked' : ''} onchange="app.toggleTask(${task.id})">
+                                <label for="task_${task.id}">${task.text}</label>
+                                <button class="btn btn-danger btn-small" onclick="app.deleteTask(${task.id})">Remove</button>
+                            </div>
+                        `;
+                    });
+
+                    if (completedCount === totalCount && totalCount > 0) {
+                        html += `<div style="background: #dcfce7; border: 2px solid #16a34a; color: #166534; padding: 15px; border-radius: 6px; text-align: center; margin-top: 15px; font-weight: 600;">
+                            🎉 Great Job! You completed all tasks today!
+                        </div>`;
+                    }
+
+                    html += `<button class="btn btn-danger" style="margin-top: 15px;" onclick="app.clearAllTasks()">🗑️ Clear All Tasks</button>`;
+                }
+
+                document.getElementById('tasksList').innerHTML = html;
+            },
+
+            // TO-DO LIST
+            addTodo() {
+                const text = document.getElementById('todoInput').value.trim();
+                const priority = document.getElementById('todoPriority').value;
+
+                if (!text) {
+                    alert('Enter a task');
+                    return;
+                }
+
+                this.data.todos.push({
+                    id: Date.now(),
+                    text,
+                    priority,
+                    completed: false,
+                    createdDate: new Date().toLocaleDateString()
+                });
+
+                document.getElementById('todoInput').value = '';
+                this.saveData();
+                this.renderTodos();
+            },
+
+            toggleTodo(id) {
+                const todo = this.data.todos.find(t => t.id === id);
+                if (todo) {
+                    todo.completed = !todo.completed;
+                    this.saveData();
+                    this.renderTodos();
+                }
+            },
+
+            deleteTodo(id) {
+                this.data.todos = this.data.todos.filter(t => t.id !== id);
+                this.saveData();
+                this.renderTodos();
+            },
+
+            renderTodos() {
+                let html = '';
+                if (this.data.todos.length === 0) {
+                    html = '<p style="color: #999;">No tasks in to-do list</p>';
+                } else {
+                    this.data.todos.forEach(todo => {
+                        const colorClass = todo.priority === 'High' ? '#dc2626' : 
+                                          todo.priority === 'Medium' ? '#f59e0b' : '#6b7280';
+                        html += `
+                            <div class="todo-item ${todo.completed ? 'done' : ''}">
+                                <input type="checkbox" id="todo_${todo.id}" ${todo.completed ? 'checked' : ''} onchange="app.toggleTodo(${todo.id})">
+                                <label for="todo_${todo.id}" style="color: ${colorClass}; font-weight: 600;">${todo.text} <span style="font-size: 11px; color: #999;">[${todo.priority}]</span></label>
+                                <button class="btn btn-danger btn-small" onclick="app.deleteTodo(${todo.id})">Delete</button>
+                            </div>
+                        `;
+                    });
+                }
+                document.getElementById('todoList').innerHTML = html;
+            },
+
+            // UI
+            switchTab(tab) {
+                document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('show'));
+                document.querySelectorAll('.tab').forEach(el => el.classList.remove('active'));
+                document.getElementById(tab).classList.add('show');
+                event.target.classList.add('active');
+
+                if (tab === 'leads') this.renderLeads();
+                if (tab === 'events') this.renderEvents();
+                if (tab === 'todos') this.renderTodos();
+                if (tab === 'tasks') this.renderTasksList();
+            },
+
+            updateDashboard() {
+                document.getElementById('totalLeads').textContent = this.data.leads.length;
+                document.getElementById('hotLeads').textContent = this.data.leads.filter(l => l.status === 'Hot Lead').length;
+                document.getElementById('converted').textContent = this.data.leads.filter(l => l.status === 'Converted').length;
+                document.getElementById('eventsCount').textContent = this.data.events.length;
+                const totalTickets = this.data.events.reduce((sum, e) => sum + e.attendees.reduce((s, a) => s + a.ticketsPurchased, 0), 0);
+                document.getElementById('totalTickets').textContent = totalTickets;
+                document.getElementById('todoCount').textContent = this.data.todos.filter(t => !t.completed).length;
+            },
+
+            showApp() {
+                document.getElementById('authPage').classList.remove('show');
+                document.getElementById('appPage').classList.add('show');
+                document.getElementById('userEmail').textContent = '👤 ' + this.user.email;
+                this.updateDashboard();
+            }
+        };
+
+        // Initialize
+        window.addEventListener('load', function() {
+            const saved = localStorage.getItem('currentUser');
+            if (saved) {
+                app.user = JSON.parse(saved);
+                app.loadData();
+                app.showApp();
+            }
+        });
+
+        window.onclick = function(event) {
+            const modal = document.getElementById('editLeadModal');
+            if (event.target === modal) {
+                app.closeEditLeadModal();
+            }
+        }
+
+        // Auth tab switching
+        function switchAuthTab(tab) {
+            app.switchAuthTab(tab);
+        }
+
+        function handleSignIn(e) {
+            app.handleSignIn(e);
+        }
+
+        function handleSignUp(e) {
+            app.handleSignUp(e);
+        }
+
+        function handleLogout() {
+            app.handleLogout();
+        }
+
+        function switchTab(tab) {
+            app.switchTab(tab);
+        }
+
+        function addLead() {
+            app.addLead();
+        }
+
+        function openEditLeadModal(id) {
+            app.openEditLeadModal(id);
+        }
+
+        function closeEditLeadModal() {
+            app.closeEditLeadModal();
+        }
+
+        function saveEditLead() {
+            app.saveEditLead();
+        }
+
+        function deleteLead(id) {
+            app.deleteLead(id);
+        }
+
+        function addEvent() {
+            app.addEvent();
+        }
+
+        function addAttendee(id) {
+            app.addAttendee(id);
+        }
+
+        function deleteAttendee(eventId, attendeeId) {
+            app.deleteAttendee(eventId, attendeeId);
+        }
+
+        function deleteEvent(id) {
+            app.deleteEvent(id);
+        }
+
+        function addTodo() {
+            app.addTodo();
+        }
+
+        function toggleTodo(id) {
+            app.toggleTodo(id);
+        }
+
+        function deleteTodo(id) {
+            app.deleteTodo(id);
+        }
         // AUTHENTICATION
         function handleSignIn(e) {
             e.preventDefault();
